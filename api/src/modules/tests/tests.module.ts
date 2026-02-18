@@ -4,6 +4,7 @@ import { TestSet, TestSetSchema } from './entities/test-set.entity';
 import { TestCase, TestCaseSchema } from './entities/test-case.entity';
 import { TestRun, TestRunSchema } from './entities/test-run.entity';
 import { Result, ResultSchema } from './entities/result.entity';
+import { FileParserService } from './services/file-parser.service';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { Result, ResultSchema } from './entities/result.entity';
     ]),
   ],
   controllers: [],
-  providers: [],
-  exports: [MongooseModule],
+  providers: [FileParserService],
+  exports: [MongooseModule, FileParserService],
 })
 export class TestsModule {}
