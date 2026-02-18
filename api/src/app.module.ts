@@ -7,6 +7,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { MongooseModule } from '@nestjs/mongoose';
 import { getAppVersion } from './utils/get-app-version';
 import { HealthModule } from './modules/health/health.module';
+import { TestsModule } from './modules/tests/tests.module';
 import { HttpExceptionFilter } from './modules/event-logs/filters/http-exception.filter';
 import { EventLogsModule } from './modules/event-logs/event-logs.module';
 import { DocumentsModule } from './modules/documents/documents.module';
@@ -56,6 +57,7 @@ import { AuthGuard } from './modules/users/guards/auth.guard';
 
     // Modules
     HealthModule,
+    TestsModule,
     EventLogsModule,
     DocumentsModule,
     UsersModule,
