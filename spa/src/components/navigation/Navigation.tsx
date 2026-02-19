@@ -11,10 +11,12 @@ import { useEventBus } from '../../hooks/useEventBus';
 const Navigation = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
 
   const classNames = classList(styles.navigation, className);
+  const disableAuth = import.meta.env.VITE_DISABLE_AUTH === 'true';
 
   const activeClassName = ({ isActive }: { isActive: boolean }) => isActive ? styles.active : '';
 
-  const { data: chats, setData: setChats, loading, loadMore } = usePagedRequest<Chat>('/chats/history');
+  const chatsUrl = disableAuth ? '' : '/chats/history';
+  const { data: chats, setData: setChats, loading, loadMore } = usePagedRequest<Chat>(chatsUrl);
 
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const target = event.target as HTMLDivElement;
@@ -44,24 +46,38 @@ const Navigation = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement
 
       <div className={styles.menu}>
 
-        <NavLink to="/">
-          <Icon name="edit_square" />
-          New chat
+        <NavLink to="/tests" className={activeClassName}>
+          <Icon name="task_alt" />
+          Tests
         </NavLink>
 
-        <NavLink to="/documents" className={activeClassName}>
-          <Icon name="library_books" />
-          Document library
+        <NavLink to="/results" className={activeClassName}>
+          <Icon name="query_stats" />
+          Results
         </NavLink>
 
-        <NavLink to="/logs" className={activeClassName}>
-          <Icon name="bug_report" />
-          Logs
-        </NavLink>
+        {!disableAuth && (
+          <>
+            <NavLink to="/">
+              <Icon name="edit_square" />
+              New chat
+            </NavLink>
+
+            <NavLink to="/documents" className={activeClassName}>
+              <Icon name="library_books" />
+              Document library
+            </NavLink>
+
+            <NavLink to="/logs" className={activeClassName}>
+              <Icon name="bug_report" />
+              Logs
+            </NavLink>
+          </>
+        )}
 
       </div>
 
-      <div className={styles.history}>
+      {!disableAuth && <div className={styles.history}>
 
         <h2>Recent Chats</h2>
 
@@ -75,7 +91,7 @@ const Navigation = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement
 
         {chats?.length === 0 && <p className={styles.noChats}>No chats yet</p>}
 
-      </div>
+      </div>}
 
       <div className={styles.spacer} />
 

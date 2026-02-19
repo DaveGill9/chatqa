@@ -1,0 +1,97 @@
+.layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 16px;
+  height: 100%;
+}
+
+.panel {
+  border: 1px solid var(--background-offset-color);
+  border-radius: 12px;
+  background: rgba(var(--background-offset-color-rgb), 0.2);
+  padding: 12px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  h2 {
+    margin: 0;
+    font-size: 1rem;
+  }
+}
+
+.list {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.listItem,
+.activeListItem {
+  text-align: left;
+  border: 1px solid var(--background-offset-color);
+  background: var(--background-color);
+  color: var(--text-color);
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activeListItem {
+  border-color: var(--primary-color);
+}
+
+.runRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+
+  select {
+    min-width: 220px;
+    border: 1px solid var(--background-offset-color);
+    border-radius: 8px;
+    padding: 8px;
+    background: var(--background-color);
+    color: var(--text-color);
+  }
+}
+
+.tableWrap {
+  overflow: auto;
+  border: 1px solid var(--background-offset-color);
+  border-radius: 10px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+
+  th,
+  td {
+    border-bottom: 1px solid var(--background-offset-color);
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: rgba(var(--background-offset-color-rgb), 0.5);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+}

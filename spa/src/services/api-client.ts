@@ -12,6 +12,14 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor to add MSAL token
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type'];
+    }
+
+    if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
+      return config;
+    }
+
     try {
       const accessToken = await acquireAccessToken();
       if (config.headers) {
@@ -33,6 +41,10 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401) {
       // Handle unauthorized - clear account and redirect to login
       const accounts = msalInstance.getAllAccounts();
