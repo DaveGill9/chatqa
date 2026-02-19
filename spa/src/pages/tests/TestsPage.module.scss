@@ -69,15 +69,22 @@
 }
 
 .caseCard {
-  border: 1px solid var(--background-color);
+  border: 1px solid var(--background-offset-color);
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 10px;
+  background: rgba(var(--background-offset-color-rgb), 0.25);
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 0.95em;
+    color: var(--primary-color);
+  }
 
   p {
     margin: 0 0 6px;
-    max-height: 7.2em;
-    overflow: hidden;
+    max-height: none;
+    overflow: visible;
   }
 }
 

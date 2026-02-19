@@ -161,7 +161,7 @@ export default function TestsPage() {
           <AnimatePresence>
             {previewVisible && selectedSetId && (
               <AnimatedDetailLayout
-                width={920}
+                width={760}
                 onClose={() => {
                   setPreviewVisible(false);
                   setSelectedSetId(null);
@@ -192,7 +192,7 @@ interface TestSetPreviewProps {
 
 function TestSetPreview({ testSetId, onClose, onOpenResults }: TestSetPreviewProps) {
   const { data, loading } = useFetchRequest<TestSetDetail>(testSetId ? `/tests/sets/${testSetId}` : '');
-  const previewCases = data?.cases?.slice(0, 5) ?? [];
+  const previewCases = data?.cases ?? [];
 
   return (
     <aside className={styles.preview}>
@@ -210,6 +210,7 @@ function TestSetPreview({ testSetId, onClose, onOpenResults }: TestSetPreviewPro
               {previewCases.length === 0 && <Feedback type="empty">No test rows found</Feedback>}
               {previewCases.map((testCase) => (
                 <article className={styles.caseCard} key={testCase._id}>
+                  <h3>{testCase.id}</h3>
                   <p>
                     <b>Input:</b> {testCase.input}
                   </p>
