@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { AnimatePresence } from 'framer-motion';
 import usePagedRequest from '../../hooks/usePagedRequest';
+import useFetchRequest from '../../hooks/useFetchRequest';
 import Feedback from '../../components/feedback/Feedback';
 import Icon from '../../components/icon/Icon';
 import Page from '../../components/layout/Page';
+import AnimatedDetailLayout from '../../components/layout/AnimatedDetailLayout';
 import IconButton from '../../components/icon/IconButton';
 import Input from '../../components/input/Input';
 import Button from '../../components/button/Button';
@@ -21,12 +24,26 @@ type TestSet = {
   createdAt: string;
 };
 
+type TestCase = {
+  _id: string;
+  id: string;
+  input: string;
+  expected: string;
+};
+
+type TestSetDetail = TestSet & {
+  testCaseCount: number;
+  cases: TestCase[];
+};
+
 export default function TestsPage() {
   const navigate = useNavigate();
   const [keywords, setKeywords] = useState('');
   const [setName, setSetName] = useState('');
   const [project, setProject] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
 
   const baseUrl = '/tests/sets';
   const [url, setUrl] = useState(baseUrl);
@@ -117,24 +134,99 @@ export default function TestsPage() {
       </Page.Header>
 
       <Page.Content>
-        {uploading && <Feedback type="loading">Uploading test file...</Feedback>}
-        {loading && <Feedback type="loading" />}
-        {!loading && data?.length === 0 && <Feedback type="empty">No test sets found</Feedback>}
+        <div className={styles.layout}>
+          <div className={styles.list}>
+            {uploading && <Feedback type="loading">Uploading test file...</Feedback>}
+            {loading && <Feedback type="loading" />}
+            {!loading && data?.length === 0 && <Feedback type="empty">No test sets found</Feedback>}
 
-        {data?.map((testSet) => (
-          <Button
-            type="block"
-            key={testSet._id}
-            className={styles.testSet}
-            onClick={() => navigate(`/results?setId=${testSet._id}`)}
-          >
-            <Icon name="description" />
-            <strong>{testSet.name}</strong>
-            <span>{testSet.filename}</span>
-            <small>{format(new Date(testSet.createdAt), 'h:mma d MMM yyyy')}</small>
-          </Button>
-        ))}
+            {data?.map((testSet) => (
+              <Button
+                type="block"
+                key={testSet._id}
+                className={[styles.testSet, selectedSetId === testSet._id ? styles.active : ''].join(' ')}
+                onClick={() => {
+                  setSelectedSetId(testSet._id);
+                  setPreviewVisible(true);
+                }}
+              >
+                <Icon name="description" />
+                <strong>{testSet.name}</strong>
+                <span>{testSet.filename}</span>
+                <small>{format(new Date(testSet.createdAt), 'h:mma d MMM yyyy')}</small>
+              </Button>
+            ))}
+          </div>
+
+          <AnimatePresence>
+            {previewVisible && selectedSetId && (
+              <AnimatedDetailLayout
+                width={920}
+                onClose={() => {
+                  setPreviewVisible(false);
+                  setSelectedSetId(null);
+                }}
+              >
+                <TestSetPreview
+                  testSetId={selectedSetId}
+                  onClose={() => {
+                    setPreviewVisible(false);
+                    setSelectedSetId(null);
+                  }}
+                  onOpenResults={(testSetId) => navigate(`/results?setId=${testSetId}`)}
+                />
+              </AnimatedDetailLayout>
+            )}
+          </AnimatePresence>
+        </div>
       </Page.Content>
     </Page>
+  );
+}
+
+interface TestSetPreviewProps {
+  testSetId: string | null;
+  onClose: () => void;
+  onOpenResults: (testSetId: string) => void;
+}
+
+function TestSetPreview({ testSetId, onClose, onOpenResults }: TestSetPreviewProps) {
+  const { data, loading } = useFetchRequest<TestSetDetail>(testSetId ? `/tests/sets/${testSetId}` : '');
+  const previewCases = data?.cases?.slice(0, 5) ?? [];
+
+  return (
+    <aside className={styles.preview}>
+        <div className={styles.previewHeader}>
+          <strong>{data?.filename || ''}</strong>
+          <IconButton icon="right_panel_close" onClick={onClose} />
+        </div>
+
+        <div className={styles.previewContent}>
+          {!testSetId && <Feedback type="empty">Select a test file to preview</Feedback>}
+          {loading && testSetId && <Feedback type="loading" />}
+
+          {!loading && data && (
+            <>
+              {previewCases.length === 0 && <Feedback type="empty">No test rows found</Feedback>}
+              {previewCases.map((testCase) => (
+                <article className={styles.caseCard} key={testCase._id}>
+                  <p>
+                    <b>Input:</b> {testCase.input}
+                  </p>
+                  <p>
+                    <b>Expected:</b> {testCase.expected}
+                  </p>
+                </article>
+              ))}
+
+              {testSetId && (
+                <Button type="button" className={styles.openResultsButton} onClick={() => onOpenResults(testSetId)}>
+                  View Results
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      </aside>
   );
 }
