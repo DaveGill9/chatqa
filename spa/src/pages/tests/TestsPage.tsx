@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { AnimatePresence } from 'framer-motion';
 import usePagedRequest from '../../hooks/usePagedRequest';
@@ -193,9 +193,31 @@ export default function TestsPage() {
     return sortedData.filter((set) => getFileType(set.filename) === wanted);
   }, [fileFilter, sortedData]);
 
+  const resultsHref = selectedSetId ? `/results?setId=${selectedSetId}` : '/results';
+
   return (
     <Page>
-      <Page.Header title="Test files" subtitle="View and manage uploaded CSV/XLSX test sets.">
+      <Page.Header
+        title="Documents"
+        subtitle="View and manage uploaded CSV/XLSX test sets."
+        bottom={(
+          <nav className={styles.pageTabs} aria-label="Tests navigation">
+            <NavLink
+              to="/tests"
+              end
+              className={({ isActive }) => [styles.pageTab, isActive ? styles.pageTabActive : ''].join(' ')}
+            >
+              Tests
+            </NavLink>
+            <NavLink
+              to={resultsHref}
+              className={({ isActive }) => [styles.pageTab, isActive ? styles.pageTabActive : ''].join(' ')}
+            >
+              Results
+            </NavLink>
+          </nav>
+        )}
+      >
         {/* actions intentionally kept minimal */}
       </Page.Header>
 

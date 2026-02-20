@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { NavLink, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import Page from '../../components/layout/Page';
 import Input from '../../components/input/Input';
@@ -177,23 +177,50 @@ export default function ResultsPage() {
     }
   };
 
+  const resultsHref = selectedSetId ? `/results?setId=${selectedSetId}` : '/results';
+
   return (
     <Page>
-      <Page.Header title="Results">
-        <Input
-          placeholder="Filter test sets"
-          value={setFilter}
-          onTextChange={setSetFilter}
-        />
-        <Button type="button" onClick={runSelectedSet} working={running}>
-          Run selected set
-        </Button>
-        <Button type="button" variant="border" onClick={() => void downloadResults('xlsx')}>
-          Download XLSX
-        </Button>
-        <Button type="button" variant="border" onClick={() => void downloadResults('csv')}>
-          Download CSV
-        </Button>
+      <Page.Header
+        title="Results"
+        bottom={(
+          <div className={styles.headerBottom}>
+            <nav className={styles.pageTabs} aria-label="Tests navigation">
+              <NavLink
+                to="/tests"
+                end
+                className={({ isActive }) => [styles.pageTab, isActive ? styles.pageTabActive : ''].join(' ')}
+              >
+                Tests
+              </NavLink>
+              <NavLink
+                to={resultsHref}
+                className={({ isActive }) => [styles.pageTab, isActive ? styles.pageTabActive : ''].join(' ')}
+              >
+                Results
+              </NavLink>
+            </nav>
+
+            <div className={styles.headerControls}>
+              <Input
+                placeholder="Filter test sets"
+                value={setFilter}
+                onTextChange={setSetFilter}
+              />
+              <Button type="button" onClick={runSelectedSet} working={running}>
+                Run selected set
+              </Button>
+              <Button type="button" variant="border" onClick={() => void downloadResults('xlsx')}>
+                Download XLSX
+              </Button>
+              <Button type="button" variant="border" onClick={() => void downloadResults('csv')}>
+                Download CSV
+              </Button>
+            </div>
+          </div>
+        )}
+      >
+        {/* actions moved into header bottom to sit under tabs */}
       </Page.Header>
 
       <Page.Content>

@@ -23,19 +23,23 @@ export default function Page({ children, className }: PageProps) {
 interface HeaderProps extends React.HTMLAttributes<HTMLDivElement> {
     title: string;
     subtitle?: string;
+    bottom?: React.ReactNode;
 }
 
-function Header({ title, subtitle, className, children, ...props }: HeaderProps) {
+function Header({ title, subtitle, bottom, className, children, ...props }: HeaderProps) {
     const classList = [styles.header, className].filter(Boolean).join(' ');
     return (
         <header className={classList} {...props}>
-            <div className={styles.title}>
-                <h1>{title}</h1>
-                {subtitle && <p>{subtitle}</p>}
+            <div className={styles.headerTop}>
+                <div className={styles.title}>
+                    <h1>{title}</h1>
+                    {subtitle && <p>{subtitle}</p>}
+                </div>
+                <div className={styles.actions}>
+                    {children}
+                </div>
             </div>
-            <div className={styles.actions}>
-                {children}
-            </div>
+            {bottom && <div className={styles.bottom}>{bottom}</div>}
         </header>
     );
 }
