@@ -142,6 +142,7 @@ export class TestsService {
 
     let successCount = 0;
     let failedCount = 0;
+    const rowsForExport: TestRow[] = [];
 
     try {
       for (const testCase of cases) {
@@ -159,6 +160,12 @@ export class TestsService {
             reasoning: score.reasoning,
           });
           successCount++;
+          rowsForExport.push({
+            ...row,
+            actual,
+            score: score.score,
+            reasoning: score.reasoning,
+          });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           await this.resultModel.create({
@@ -169,17 +176,41 @@ export class TestsService {
             reasoning: `ERROR: ${message}`,
           });
           failedCount++;
+          rowsForExport.push({
+            ...row,
+            actual: '',
+            score: 0,
+            reasoning: `ERROR: ${message}`,
+          });
         }
+      }
+
+      const rowCount = rowsForExport.length;
+      let resultSizeBytesXlsx: number | undefined;
+      try {
+        const buf = this.buildRowsFile(rowsForExport, 'xlsx');
+        resultSizeBytesXlsx = Buffer.isBuffer(buf) ? buf.length : undefined;
+      } catch {
+        resultSizeBytesXlsx = undefined;
       }
 
       await this.testRunModel.updateOne(
         { _id: run._id },
-        { status: 'completed', completedAt: new Date() },
+        { status: 'completed', completedAt: new Date(), rowCount, resultSizeBytesXlsx },
       );
     } catch (error) {
+      const rowCount = rowsForExport.length;
+      let resultSizeBytesXlsx: number | undefined;
+      try {
+        const buf = this.buildRowsFile(rowsForExport, 'xlsx');
+        resultSizeBytesXlsx = Buffer.isBuffer(buf) ? buf.length : undefined;
+      } catch {
+        resultSizeBytesXlsx = undefined;
+      }
+
       await this.testRunModel.updateOne(
         { _id: run._id },
-        { status: 'failed', completedAt: new Date() },
+        { status: 'failed', completedAt: new Date(), rowCount, resultSizeBytesXlsx },
       );
       throw error;
     }
@@ -200,6 +231,71 @@ export class TestsService {
       .sort({ createdAt: -1 })
       .lean();
     return runs;
+  }
+
+  async listRuns(filter?: { setId?: string; keywords?: string; offset?: number; limit?: number }) {
+    const offset = Math.max(0, filter?.offset ?? 0);
+    const limit = Math.max(1, Math.min(500, filter?.limit ?? 200));
+    const keywords = filter?.keywords?.trim();
+
+    let allowedSetIds: string[] | null = null;
+    if (keywords) {
+      const matchingSets = await this.testSetModel
+        .find({
+          $or: [
+            { name: { $regex: keywords, $options: 'i' } },
+            { filename: { $regex: keywords, $options: 'i' } },
+            { project: { $regex: keywords, $options: 'i' } },
+          ],
+        })
+        .select({ _id: 1 })
+        .lean();
+      allowedSetIds = matchingSets.map((s) => String(s._id));
+      if (allowedSetIds.length === 0) return [];
+    }
+
+    const query: Record<string, unknown> = {};
+    if (filter?.setId) query.testSetId = String(filter.setId);
+    if (allowedSetIds) {
+      const current = query.testSetId;
+      if (typeof current === 'string') {
+        if (!allowedSetIds.includes(current)) return [];
+      } else {
+        query.testSetId = { $in: allowedSetIds };
+      }
+    }
+
+    const runs = await this.testRunModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .lean();
+
+    const setIds = [...new Set(runs.map((r) => String(r.testSetId)).filter(Boolean))];
+    const sets = setIds.length
+      ? await this.testSetModel.find({ _id: { $in: setIds } }).lean()
+      : [];
+    const setById = new Map(sets.map((s) => [String(s._id), s]));
+
+    const counts = setIds.length
+      ? await this.testCaseModel.aggregate<{ _id: unknown; testCaseCount: number }>([
+          { $match: { testSetId: { $in: setIds } } },
+          { $group: { _id: '$testSetId', testCaseCount: { $sum: 1 } } },
+        ])
+      : [];
+    const countBySetId = new Map(counts.map((item) => [String(item._id), item.testCaseCount]));
+
+    return runs.map((run) => {
+      const set = setById.get(String(run.testSetId));
+      return {
+        ...run,
+        testSetName: set?.name ?? '',
+        testSetFilename: set?.filename ?? '',
+        rowCount: typeof run.rowCount === 'number' ? run.rowCount : (countBySetId.get(String(run.testSetId)) ?? 0),
+        resultSizeBytesXlsx: typeof run.resultSizeBytesXlsx === 'number' ? run.resultSizeBytesXlsx : null,
+      };
+    });
   }
 
   async getRun(testRunId: string) {

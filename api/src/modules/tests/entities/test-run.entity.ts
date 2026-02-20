@@ -17,6 +17,12 @@ export class TestRun extends BaseEntity {
 
   @Prop()
   completedAt?: Date;
+
+  @Prop()
+  rowCount?: number;
+
+  @Prop()
+  resultSizeBytesXlsx?: number;
 }
 
 export const TestRunSchema = SchemaFactory.createForClass(TestRun);

@@ -55,6 +55,21 @@ export class TestsController {
     return this.testsService.listRunsForSet(testSetId);
   }
 
+  @Get('runs')
+  async listRuns(
+    @Query('setId') setId?: string,
+    @Query('keywords') keywords?: string,
+    @Query('offset') offset?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.testsService.listRuns({
+      setId: setId?.trim() || undefined,
+      keywords,
+      offset: offset ? parseInt(offset, 10) : 0,
+      limit: limit ? parseInt(limit, 10) : 200,
+    });
+  }
+
   @Get('runs/:testRunId')
   async getRun(@Param('testRunId') testRunId: string) {
     return this.testsService.getRun(testRunId);
