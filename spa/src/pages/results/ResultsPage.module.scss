@@ -16,6 +16,40 @@
   }
 }
 
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 10px;
+  background: var(--background-color);
+  border: 1px solid var(--background-offset-color);
+  overflow: hidden;
+}
+
+.segment {
+  border: none;
+  background: var(--background-color);
+  color: var(--gray-color);
+  font-weight: 600;
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--background-offset-color);
+  }
+
+  &:hover {
+    color: var(--text-color);
+    background: rgba(var(--background-offset-color-rgb), 0.35);
+  }
+}
+
+.segmentActive {
+  color: var(--text-color);
+  background: rgba(var(--background-offset-color-rgb), 0.6);
+  font-weight: 700;
+}
+
 .searchWrap {
   flex: 0 0 360px;
   max-width: 460px;

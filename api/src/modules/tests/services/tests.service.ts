@@ -6,6 +6,8 @@ import { TestSet } from '../entities/test-set.entity';
 import { TestCase } from '../entities/test-case.entity';
 import { TestRun } from '../entities/test-run.entity';
 import { Result } from '../entities/result.entity';
+import { ResultSet } from '../entities/result-set.entity';
+import { ResultCase } from '../entities/result-case.entity';
 import type { TestRow } from '../types/test.types';
 import { ParserService } from './parser.service';
 import { BotClientService } from './bot-client.service';
@@ -18,6 +20,8 @@ export class TestsService {
     @InjectModel(TestCase.name) private readonly testCaseModel: Model<TestCase>,
     @InjectModel(TestRun.name) private readonly testRunModel: Model<TestRun>,
     @InjectModel(Result.name) private readonly resultModel: Model<Result>,
+    @InjectModel(ResultSet.name) private readonly resultSetModel: Model<ResultSet>,
+    @InjectModel(ResultCase.name) private readonly resultCaseModel: Model<ResultCase>,
     private readonly parserService: ParserService,
     private readonly botClientService: BotClientService,
     private readonly scoreService: ScoreService,
@@ -143,6 +147,19 @@ export class TestsService {
     let successCount = 0;
     let failedCount = 0;
     const rowsForExport: TestRow[] = [];
+    const resultCasesBase: Array<{
+      resultSetId: string;
+      testRunId: string;
+      testSetId: string;
+      testCaseId: string;
+      id: string;
+      input: string;
+      expected: string;
+      actual: string;
+      score: number;
+      reasoning: string;
+      additionalContext?: Record<string, unknown>;
+    }> = [];
 
     try {
       for (const testCase of cases) {
@@ -166,6 +183,22 @@ export class TestsService {
             score: score.score,
             reasoning: score.reasoning,
           });
+          resultCasesBase.push({
+            resultSetId: '',
+            testRunId: String(run._id),
+            testSetId: String(set._id),
+            testCaseId: String(testCase._id),
+            id: String(testCase.id),
+            input: String(testCase.input),
+            expected: String(testCase.expected),
+            actual,
+            score: score.score,
+            reasoning: score.reasoning,
+            additionalContext:
+              testCase.additionalContext && typeof testCase.additionalContext === 'object'
+                ? (testCase.additionalContext as Record<string, unknown>)
+                : undefined,
+          });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           await this.resultModel.create({
@@ -182,6 +215,22 @@ export class TestsService {
             score: 0,
             reasoning: `ERROR: ${message}`,
           });
+          resultCasesBase.push({
+            resultSetId: '',
+            testRunId: String(run._id),
+            testSetId: String(set._id),
+            testCaseId: String(testCase._id),
+            id: String(testCase.id),
+            input: String(testCase.input),
+            expected: String(testCase.expected),
+            actual: '',
+            score: 0,
+            reasoning: `ERROR: ${message}`,
+            additionalContext:
+              testCase.additionalContext && typeof testCase.additionalContext === 'object'
+                ? (testCase.additionalContext as Record<string, unknown>)
+                : undefined,
+          });
         }
       }
 
@@ -192,6 +241,53 @@ export class TestsService {
         resultSizeBytesXlsx = Buffer.isBuffer(buf) ? buf.length : undefined;
       } catch {
         resultSizeBytesXlsx = undefined;
+      }
+
+      // Persist result sets + cases (stored similarly to test sets + cases)
+      const rowsFromCases = resultCasesBase.map((c) => this.resultCaseToRow(c));
+      const xlsxRowsBuffer = this.buildRowsFile(rowsFromCases, 'xlsx');
+      const csvRowsBuffer = this.buildRowsFile(rowsFromCases, 'csv');
+
+      const resultSetDocs = await this.resultSetModel.create([
+        {
+          testRunId: String(run._id),
+          testSetId: String(set._id),
+          name: `Results - ${set.name}`,
+          filename: `test-run-${String(run._id)}-results.xlsx`,
+          format: 'xlsx',
+          sizeBytes: xlsxRowsBuffer.length,
+          testCaseCount: rowCount,
+          testSetName: set.name,
+          testSetFilename: set.filename,
+        },
+        {
+          testRunId: String(run._id),
+          testSetId: String(set._id),
+          name: `Results - ${set.name}`,
+          filename: `test-run-${String(run._id)}-results.csv`,
+          format: 'csv',
+          sizeBytes: csvRowsBuffer.length,
+          testCaseCount: rowCount,
+          testSetName: set.name,
+          testSetFilename: set.filename,
+        },
+      ]);
+
+      const xlsxSet = resultSetDocs.find((d) => d.format === 'xlsx');
+      const csvSet = resultSetDocs.find((d) => d.format === 'csv');
+
+      if (xlsxSet) {
+        await this.resultCaseModel.insertMany(
+          resultCasesBase.map((base) => ({ ...base, resultSetId: String(xlsxSet._id) })),
+          { ordered: false },
+        );
+      }
+
+      if (csvSet) {
+        await this.resultCaseModel.insertMany(
+          resultCasesBase.map((base) => ({ ...base, resultSetId: String(csvSet._id) })),
+          { ordered: false },
+        );
       }
 
       await this.testRunModel.updateOne(
@@ -342,6 +438,87 @@ export class TestsService {
       return this.parserService.toXlsxBuffer(rows, 'Results');
     }
     return this.parserService.toCsvBuffer(rows);
+  }
+
+  async listResultSets(filter?: {
+    testSetId?: string;
+    keywords?: string;
+    format?: 'csv' | 'xlsx';
+    offset?: number;
+    limit?: number;
+  }) {
+    const keywords = filter?.keywords?.trim();
+    const offset = Math.max(0, filter?.offset ?? 0);
+    const limit = Math.max(1, Math.min(500, filter?.limit ?? 200));
+
+    const query: Record<string, unknown> = {};
+    if (filter?.testSetId) query.testSetId = String(filter.testSetId);
+    if (filter?.format) query.format = filter.format;
+
+    if (keywords) {
+      query.$or = [
+        { name: { $regex: keywords, $options: 'i' } },
+        { filename: { $regex: keywords, $options: 'i' } },
+        { testSetName: { $regex: keywords, $options: 'i' } },
+        { testSetFilename: { $regex: keywords, $options: 'i' } },
+      ];
+    }
+
+    return this.resultSetModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .lean();
+  }
+
+  async getResultSet(resultSetId: string) {
+    const set = await this.resultSetModel.findById(resultSetId).lean();
+    if (!set) {
+      throw new NotFoundException('Result set not found');
+    }
+
+    const cases = await this.resultCaseModel
+      .find({ resultSetId: { $in: [String(set._id), set._id as unknown] } })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    return {
+      ...set,
+      testCaseCount: cases.length,
+      cases,
+    };
+  }
+
+  async getResultSetRows(resultSetId: string): Promise<TestRow[]> {
+    const set = await this.resultSetModel.findById(resultSetId).lean();
+    if (!set) {
+      throw new NotFoundException('Result set not found');
+    }
+
+    const cases = await this.resultCaseModel
+      .find({ resultSetId: { $in: [String(set._id), set._id as unknown] } })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    return cases.map((c) => this.resultCaseToRow(c));
+  }
+
+  private resultCaseToRow(resultCase: Partial<ResultCase>): TestRow {
+    const extras =
+      resultCase.additionalContext && typeof resultCase.additionalContext === 'object'
+        ? (resultCase.additionalContext as Record<string, unknown>)
+        : {};
+
+    return {
+      id: String(resultCase.id ?? ''),
+      input: String(resultCase.input ?? ''),
+      expected: String(resultCase.expected ?? ''),
+      ...(extras as Record<string, unknown>),
+      actual: String(resultCase.actual ?? ''),
+      score: typeof resultCase.score === 'number' ? resultCase.score : 0,
+      reasoning: String(resultCase.reasoning ?? ''),
+    };
   }
 
   private toTestRow(testCase: TestCase): TestRow {

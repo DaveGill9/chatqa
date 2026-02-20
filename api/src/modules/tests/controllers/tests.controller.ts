@@ -81,6 +81,49 @@ export class TestsController {
     return { rows };
   }
 
+  @Get('results/sets')
+  async listResultSets(
+    @Query('keywords') keywords?: string,
+    @Query('setId') setId?: string,
+    @Query('format') format?: 'csv' | 'xlsx',
+    @Query('offset') offset?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.testsService.listResultSets({
+      keywords,
+      testSetId: setId?.trim() || undefined,
+      format: format === 'csv' || format === 'xlsx' ? format : undefined,
+      offset: offset ? parseInt(offset, 10) : 0,
+      limit: limit ? parseInt(limit, 10) : 200,
+    });
+  }
+
+  @Get('results/sets/:resultSetId')
+  async getResultSet(@Param('resultSetId') resultSetId: string) {
+    return this.testsService.getResultSet(resultSetId);
+  }
+
+  @Get('results/sets/:resultSetId/download')
+  async downloadResultSet(
+    @Param('resultSetId') resultSetId: string,
+    @Query('format') format: 'csv' | 'xlsx' = 'xlsx',
+    @Res() res: Response,
+  ) {
+    const rows = await this.testsService.getResultSetRows(resultSetId);
+    const safeFormat: 'csv' | 'xlsx' = format === 'csv' ? 'csv' : 'xlsx';
+    const fileBuffer = this.testsService.buildRowsFile(rows, safeFormat);
+    const filename = `result-set-${resultSetId}.${safeFormat}`;
+
+    res.setHeader(
+      'Content-Type',
+      safeFormat === 'xlsx'
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'text/csv; charset=utf-8',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(fileBuffer);
+  }
+
   @Get('runs/:testRunId/download')
   async downloadRunResults(
     @Param('testRunId') testRunId: string,

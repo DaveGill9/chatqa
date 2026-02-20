@@ -4,6 +4,8 @@ import { TestSet, TestSetSchema } from './entities/test-set.entity';
 import { TestCase, TestCaseSchema } from './entities/test-case.entity';
 import { TestRun, TestRunSchema } from './entities/test-run.entity';
 import { Result, ResultSchema } from './entities/result.entity';
+import { ResultSet, ResultSetSchema } from './entities/result-set.entity';
+import { ResultCase, ResultCaseSchema } from './entities/result-case.entity';
 import { ParserService } from './services/parser.service';
 import { BotClientService } from './services/bot-client.service';
 import { ScoreService } from './services/score.service';
@@ -17,6 +19,8 @@ import { TestsController } from './controllers/tests.controller';
       { name: TestCase.name, schema: TestCaseSchema },
       { name: TestRun.name, schema: TestRunSchema },
       { name: Result.name, schema: ResultSchema },
+      { name: ResultSet.name, schema: ResultSetSchema },
+      { name: ResultCase.name, schema: ResultCaseSchema },
     ]),
   ],
   controllers: [TestsController],
