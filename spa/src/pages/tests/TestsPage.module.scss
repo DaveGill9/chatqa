@@ -1,5 +1,5 @@
 .testSet {
-  display: grid;
+  display: grid !important;
   grid-template-columns: 28px repeat(5, minmax(0, 1fr));
   align-items: center;
   width: 100%;
@@ -18,6 +18,86 @@
   &:hover {
     background-color: rgba(var(--gray-color-rgb), 0.05);
   }
+}
+
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 10px;
+  background: var(--background-color);
+  border: 1px solid var(--background-offset-color);
+  overflow: hidden;
+}
+
+.segment {
+  border: none;
+  background: var(--background-color);
+  color: var(--gray-color);
+  font-weight: 600;
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--background-offset-color);
+  }
+
+  &:hover {
+    color: var(--text-color);
+    background: rgba(var(--background-offset-color-rgb), 0.35);
+  }
+}
+
+.segmentActive {
+  color: var(--text-color);
+  background: rgba(var(--background-offset-color-rgb), 0.6);
+  font-weight: 700;
+}
+
+.searchWrap {
+  flex: 0 0 320px;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--background-color);
+  border: 1px solid var(--background-offset-color);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  i {
+    color: var(--gray-color);
+  }
+
+  &:focus-within {
+    border-color: rgba(var(--primary-color-rgb), 0.35);
+  }
+}
+
+.searchInput {
+  flex: 1;
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  outline: none;
+}
+
+.listCard {
+  border: 1px solid var(--background-offset-color);
+  border-radius: 12px;
+  background: var(--background-color);
+  overflow: hidden;
+}
+
+.listControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--background-color);
+  border-bottom: 1px solid var(--background-offset-color);
 }
 
 .listHeader {
@@ -133,6 +213,7 @@
 .list {
   flex: 1;
   overflow-y: auto;
+  padding: 16px 18px;
 }
 
 @media (max-width: 900px) {
@@ -144,6 +225,11 @@
   .fileTypeCell,
   .sizeCell {
     display: none;
+  }
+
+  .searchWrap {
+    flex-basis: 220px;
+    max-width: 260px;
   }
 }
 

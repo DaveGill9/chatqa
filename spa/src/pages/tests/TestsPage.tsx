@@ -41,6 +41,8 @@ type TestSetDetail = TestSet & {
 type SortKey = 'createdAt' | 'name' | 'fileType' | 'sizeBytes' | 'testCaseCount';
 type SortDirection = 'asc' | 'desc';
 
+type FileFilter = 'all' | 'csv' | 'xlsx';
+
 const getFileType = (filename: string) => {
   const ext = (filename.split('.').pop() || '').trim().toLowerCase();
   if (!ext) return '—';
@@ -59,6 +61,7 @@ const formatBytes = (bytes?: number | null) => {
 export default function TestsPage() {
   const navigate = useNavigate();
   const [keywords, setKeywords] = useState('');
+  const [fileFilter, setFileFilter] = useState<FileFilter>('all');
   const [uploading, setUploading] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -184,16 +187,15 @@ export default function TestsPage() {
     return <span className={styles.sortIndicator}>{sortDirection === 'asc' ? '▲' : '▼'}</span>;
   };
 
+  const visibleData = useMemo(() => {
+    if (fileFilter === 'all') return sortedData;
+    const wanted = fileFilter.toUpperCase();
+    return sortedData.filter((set) => getFileType(set.filename) === wanted);
+  }, [fileFilter, sortedData]);
+
   return (
     <Page>
-      <Page.Header title="Tests">
-        <Input
-          type="search"
-          placeholder="Find test sets"
-          value={keywords}
-          onTextChange={setKeywords}
-          onEnter={handleSearch}
-        />
+      <Page.Header title="Test files" subtitle="View and manage uploaded CSV/XLSX test sets.">
         <IconButton icon="upload" onClick={selectFiles} />
         <IconButton icon="cached" onClick={reset} />
       </Page.Header>
@@ -205,75 +207,115 @@ export default function TestsPage() {
             {loading && <Feedback type="loading" />}
             {!loading && data?.length === 0 && <Feedback type="empty">No test sets found</Feedback>}
 
-            {!!sortedData.length && (
-              <div className={styles.listHeader} role="row">
-                <div className={styles.iconCell} aria-hidden />
-                <button
-                  type="button"
-                  className={styles.headerButton}
-                  onClick={() => toggleSort('name')}
-                  aria-label="Sort by title"
-                >
-                  Title {sortIndicator('name')}
-                </button>
-                <button
-                  type="button"
-                  className={[styles.headerButton, styles.fileTypeCell].join(' ')}
-                  onClick={() => toggleSort('fileType')}
-                  aria-label="Sort by file type"
-                >
-                  File type {sortIndicator('fileType')}
-                </button>
-                <button
-                  type="button"
-                  className={[styles.headerButton, styles.sizeCell].join(' ')}
-                  onClick={() => toggleSort('sizeBytes')}
-                  aria-label="Sort by file size"
-                >
-                  Size {sortIndicator('sizeBytes')}
-                </button>
-                <button
-                  type="button"
-                  className={[styles.headerButton, styles.countCell].join(' ')}
-                  onClick={() => toggleSort('testCaseCount')}
-                  aria-label="Sort by tests number"
-                >
-                  Tests number {sortIndicator('testCaseCount')}
-                </button>
-                <button
-                  type="button"
-                  className={[styles.headerButton, styles.dateCell].join(' ')}
-                  onClick={() => toggleSort('createdAt')}
-                  aria-label="Sort by added date"
-                >
-                  Added {sortIndicator('createdAt')}
-                </button>
-              </div>
-            )}
+            <div className={styles.listCard}>
+              <div className={styles.listControls}>
+                <div className={styles.segmented} role="group" aria-label="File type filter">
+                  <button
+                    type="button"
+                    className={[styles.segment, fileFilter === 'all' ? styles.segmentActive : ''].join(' ')}
+                    onClick={() => setFileFilter('all')}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles.segment, fileFilter === 'csv' ? styles.segmentActive : ''].join(' ')}
+                    onClick={() => setFileFilter('csv')}
+                  >
+                    CSV
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles.segment, fileFilter === 'xlsx' ? styles.segmentActive : ''].join(' ')}
+                    onClick={() => setFileFilter('xlsx')}
+                  >
+                    XLSX
+                  </button>
+                </div>
 
-            {sortedData.map((testSet) => (
-              <Button
-                type="block"
-                key={testSet._id}
-                className={[styles.testSet, selectedSetId === testSet._id ? styles.active : ''].join(' ')}
-                onClick={() => {
-                  setSelectedSetId(testSet._id);
-                  setPreviewVisible(true);
-                }}
-              >
-                <div className={styles.iconCell}>
-                  <Icon name="description" />
+                <div className={styles.searchWrap}>
+                  <Icon name="search" />
+                  <Input
+                    type="search"
+                    placeholder="Search documents"
+                    value={keywords}
+                    onTextChange={setKeywords}
+                    onEnter={handleSearch}
+                    className={styles.searchInput}
+                  />
                 </div>
-                <div className={styles.titleCell}>
-                  <strong>{testSet.name}</strong>
-                  <span>{testSet.filename}</span>
+              </div>
+
+              {!!visibleData.length && (
+                <div className={styles.listHeader} role="row">
+                  <div className={styles.iconCell} aria-hidden />
+                  <button
+                    type="button"
+                    className={styles.headerButton}
+                    onClick={() => toggleSort('name')}
+                    aria-label="Sort by title"
+                  >
+                    Title {sortIndicator('name')}
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles.headerButton, styles.fileTypeCell].join(' ')}
+                    onClick={() => toggleSort('fileType')}
+                    aria-label="Sort by file type"
+                  >
+                    File type {sortIndicator('fileType')}
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles.headerButton, styles.sizeCell].join(' ')}
+                    onClick={() => toggleSort('sizeBytes')}
+                    aria-label="Sort by file size"
+                  >
+                    Size {sortIndicator('sizeBytes')}
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles.headerButton, styles.countCell].join(' ')}
+                    onClick={() => toggleSort('testCaseCount')}
+                    aria-label="Sort by tests number"
+                  >
+                    Tests number {sortIndicator('testCaseCount')}
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles.headerButton, styles.dateCell].join(' ')}
+                    onClick={() => toggleSort('createdAt')}
+                    aria-label="Sort by added date"
+                  >
+                    Added {sortIndicator('createdAt')}
+                  </button>
                 </div>
-                <div className={styles.fileTypeCell}>{getFileType(testSet.filename)}</div>
-                <div className={styles.sizeCell}>{formatBytes(testSet.sizeBytes)}</div>
-                <div className={styles.countCell}>{testSet.testCaseCount ?? 0}</div>
-                <div className={styles.dateCell}>{format(new Date(testSet.createdAt), 'h:mma d MMM yyyy')}</div>
-              </Button>
-            ))}
+              )}
+
+              {visibleData.map((testSet) => (
+                <Button
+                  type="block"
+                  key={testSet._id}
+                  className={[styles.testSet, selectedSetId === testSet._id ? styles.active : ''].join(' ')}
+                  onClick={() => {
+                    setSelectedSetId(testSet._id);
+                    setPreviewVisible(true);
+                  }}
+                >
+                  <div className={styles.iconCell}>
+                    <Icon name="description" />
+                  </div>
+                  <div className={styles.titleCell}>
+                    <strong>{testSet.name}</strong>
+                    <span>{testSet.filename}</span>
+                  </div>
+                  <div className={styles.fileTypeCell}>{getFileType(testSet.filename)}</div>
+                  <div className={styles.sizeCell}>{formatBytes(testSet.sizeBytes)}</div>
+                  <div className={styles.countCell}>{testSet.testCaseCount ?? 0}</div>
+                  <div className={styles.dateCell}>{format(new Date(testSet.createdAt), 'h:mma d MMM yyyy')}</div>
+                </Button>
+              ))}
+            </div>
           </div>
 
           <AnimatePresence>

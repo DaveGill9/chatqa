@@ -22,14 +22,16 @@ export default function Page({ children, className }: PageProps) {
 
 interface HeaderProps extends React.HTMLAttributes<HTMLDivElement> {
     title: string;
+    subtitle?: string;
 }
 
-function Header({ title, className, children, ...props }: HeaderProps) {
+function Header({ title, subtitle, className, children, ...props }: HeaderProps) {
     const classList = [styles.header, className].filter(Boolean).join(' ');
     return (
         <header className={classList} {...props}>
             <div className={styles.title}>
                 <h1>{title}</h1>
+                {subtitle && <p>{subtitle}</p>}
             </div>
             <div className={styles.actions}>
                 {children}
