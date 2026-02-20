@@ -1,6 +1,6 @@
 .testSet {
   display: grid !important;
-  grid-template-columns: 28px repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
   width: 100%;
   gap: 12px;
@@ -83,6 +83,39 @@
   outline: none;
 }
 
+.controlsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.controlsLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.uploadButton {
+  background: var(--background-color) !important;
+  border: 1px solid var(--background-offset-color) !important;
+  color: var(--text-color) !important;
+  border-radius: 999px !important;
+  padding: 10px 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-weight: 700 !important;
+
+  &:hover {
+    filter: none !important;
+    transform: none !important;
+    background: rgba(var(--background-offset-color-rgb), 0.35) !important;
+  }
+}
+
 .listCard {
   border: 1px solid var(--background-offset-color);
   border-radius: 12px;
@@ -90,22 +123,12 @@
   overflow: hidden;
 }
 
-.listControls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 14px 16px;
-  background: var(--background-color);
-  border-bottom: 1px solid var(--background-offset-color);
-}
-
 .listHeader {
   position: sticky;
   top: 0;
   z-index: 2;
   display: grid;
-  grid-template-columns: 28px repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   padding: 10px 20px;
   background: var(--background-color);
@@ -142,16 +165,10 @@
   font-size: 0.9em;
 }
 
-.iconCell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .titleCell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   min-width: 0;
 
   strong {
@@ -161,12 +178,6 @@
     text-overflow: ellipsis;
   }
 
-  span {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 0.85em;
-  }
 }
 
 .fileTypeCell {
@@ -219,7 +230,7 @@
 @media (max-width: 900px) {
   .testSet,
   .listHeader {
-    grid-template-columns: 28px minmax(200px, 1fr) 110px 180px;
+    grid-template-columns: minmax(200px, 1fr) 110px 180px;
   }
 
   .fileTypeCell,

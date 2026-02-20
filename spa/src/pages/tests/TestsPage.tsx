@@ -70,7 +70,7 @@ export default function TestsPage() {
 
   const baseUrl = '/tests/sets';
   const [url, setUrl] = useState(baseUrl);
-  const { data, setData, loading, reset } = usePagedRequest<TestSet>(url, { limit: 200 });
+  const { data, setData, loading } = usePagedRequest<TestSet>(url, { limit: 200 });
 
   const handleSearch = () => {
     if (!keywords.trim()) {
@@ -196,8 +196,7 @@ export default function TestsPage() {
   return (
     <Page>
       <Page.Header title="Test files" subtitle="View and manage uploaded CSV/XLSX test sets.">
-        <IconButton icon="upload" onClick={selectFiles} />
-        <IconButton icon="cached" onClick={reset} />
+        {/* actions intentionally kept minimal */}
       </Page.Header>
 
       <Page.Content>
@@ -207,8 +206,8 @@ export default function TestsPage() {
             {loading && <Feedback type="loading" />}
             {!loading && data?.length === 0 && <Feedback type="empty">No test sets found</Feedback>}
 
-            <div className={styles.listCard}>
-              <div className={styles.listControls}>
+            <div className={styles.controlsBar}>
+              <div className={styles.controlsLeft}>
                 <div className={styles.segmented} role="group" aria-label="File type filter">
                   <button
                     type="button"
@@ -246,9 +245,14 @@ export default function TestsPage() {
                 </div>
               </div>
 
+              <Button type="button" className={styles.uploadButton} onClick={selectFiles}>
+                <Icon name="upload" /> Upload document
+              </Button>
+            </div>
+
+            <div className={styles.listCard}>
               {!!visibleData.length && (
                 <div className={styles.listHeader} role="row">
-                  <div className={styles.iconCell} aria-hidden />
                   <button
                     type="button"
                     className={styles.headerButton}
@@ -302,12 +306,8 @@ export default function TestsPage() {
                     setPreviewVisible(true);
                   }}
                 >
-                  <div className={styles.iconCell}>
-                    <Icon name="description" />
-                  </div>
                   <div className={styles.titleCell}>
                     <strong>{testSet.name}</strong>
-                    <span>{testSet.filename}</span>
                   </div>
                   <div className={styles.fileTypeCell}>{getFileType(testSet.filename)}</div>
                   <div className={styles.sizeCell}>{formatBytes(testSet.sizeBytes)}</div>
