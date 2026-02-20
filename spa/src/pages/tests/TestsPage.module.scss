@@ -1,6 +1,6 @@
 .testSet {
   display: grid;
-  grid-template-columns: 28px minmax(220px, 1fr) minmax(140px, 0.8fr) 120px 220px;
+  grid-template-columns: 28px repeat(5, minmax(0, 1fr));
   align-items: center;
   width: 100%;
   gap: 12px;
@@ -25,7 +25,7 @@
   top: 0;
   z-index: 2;
   display: grid;
-  grid-template-columns: 28px minmax(220px, 1fr) minmax(140px, 0.8fr) 120px 220px;
+  grid-template-columns: 28px repeat(5, minmax(0, 1fr));
   gap: 12px;
   padding: 10px 20px;
   background: var(--background-color);
@@ -51,6 +51,7 @@
   }
 }
 
+.headerButton.sizeCell,
 .headerButton.countCell,
 .headerButton.dateCell {
   justify-content: flex-end;
@@ -88,12 +89,19 @@
   }
 }
 
-.projectCell {
+.fileTypeCell {
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--gray-color);
+}
+
+.sizeCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--gray-color);
+  white-space: nowrap;
 }
 
 .countCell {
@@ -133,7 +141,8 @@
     grid-template-columns: 28px minmax(200px, 1fr) 110px 180px;
   }
 
-  .projectCell {
+  .fileTypeCell,
+  .sizeCell {
     display: none;
   }
 }

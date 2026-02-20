@@ -15,6 +15,9 @@ export class TestSet extends BaseEntity {
   @Prop({ trim: true })
   filename: string;
 
+  @Prop()
+  sizeBytes?: number;
+
   @Prop({ trim: true })
   project?: string;
 }

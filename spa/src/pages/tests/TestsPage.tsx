@@ -20,6 +20,7 @@ type TestSet = {
   _id: string;
   name: string;
   filename: string;
+  sizeBytes?: number | null;
   project?: string | null;
   createdAt: string;
   testCaseCount?: number;
@@ -37,14 +38,27 @@ type TestSetDetail = TestSet & {
   cases: TestCase[];
 };
 
-type SortKey = 'createdAt' | 'project' | 'name' | 'testCaseCount';
+type SortKey = 'createdAt' | 'name' | 'fileType' | 'sizeBytes' | 'testCaseCount';
 type SortDirection = 'asc' | 'desc';
+
+const getFileType = (filename: string) => {
+  const ext = (filename.split('.').pop() || '').trim().toLowerCase();
+  if (!ext) return '—';
+  return ext.toUpperCase();
+};
+
+const formatBytes = (bytes?: number | null) => {
+  if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes <= 0) return '—';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / 1024 ** exponent;
+  const digits = exponent === 0 ? 0 : value >= 10 ? 1 : 2;
+  return `${value.toFixed(digits)} ${units[exponent]}`;
+};
 
 export default function TestsPage() {
   const navigate = useNavigate();
   const [keywords, setKeywords] = useState('');
-  const [setName, setSetName] = useState('');
-  const [project, setProject] = useState('');
   const [uploading, setUploading] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -66,8 +80,6 @@ export default function TestsPage() {
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    if (setName.trim()) formData.append('name', setName.trim());
-    if (project.trim()) formData.append('project', project.trim());
 
     setUploading(true);
     try {
@@ -76,6 +88,7 @@ export default function TestsPage() {
         testSetId: string;
         name: string;
         filename: string;
+        sizeBytes?: number | null;
         project?: string | null;
         testCaseCount?: number;
       };
@@ -86,6 +99,7 @@ export default function TestsPage() {
           _id: created.testSetId,
           name: created.name,
           filename: created.filename,
+          sizeBytes: created.sizeBytes ?? null,
           project: created.project ?? null,
           createdAt: new Date().toISOString(),
           testCaseCount: created.testCaseCount ?? 0,
@@ -93,8 +107,6 @@ export default function TestsPage() {
         return next;
       });
 
-      setSetName('');
-      setProject('');
       toast.success('Test file uploaded');
     } catch (error) {
       toast.error(error);
@@ -130,15 +142,20 @@ export default function TestsPage() {
           const bv = new Date(b.createdAt).getTime();
           return direction * compareNumber(av, bv);
         }
-        case 'project': {
-          const av = (a.project ?? '').trim();
-          const bv = (b.project ?? '').trim();
-          const base = compareText(av, bv);
-          return direction * (base || compareText(a.name, b.name));
-        }
         case 'name': {
           const base = compareText(a.name, b.name);
           return direction * (base || compareText(a.filename, b.filename));
+        }
+        case 'fileType': {
+          const av = getFileType(a.filename);
+          const bv = getFileType(b.filename);
+          const base = compareText(av, bv);
+          return direction * (base || compareText(a.name, b.name));
+        }
+        case 'sizeBytes': {
+          const av = a.sizeBytes ?? 0;
+          const bv = b.sizeBytes ?? 0;
+          return direction * (compareNumber(av, bv) || compareText(a.name, b.name));
         }
         case 'testCaseCount': {
           const av = a.testCaseCount ?? 0;
@@ -177,16 +194,6 @@ export default function TestsPage() {
           onTextChange={setKeywords}
           onEnter={handleSearch}
         />
-        <Input
-          placeholder="Optional set name"
-          value={setName}
-          onTextChange={setSetName}
-        />
-        <Input
-          placeholder="Optional project"
-          value={project}
-          onTextChange={setProject}
-        />
         <IconButton icon="upload" onClick={selectFiles} />
         <IconButton icon="cached" onClick={reset} />
       </Page.Header>
@@ -211,11 +218,19 @@ export default function TestsPage() {
                 </button>
                 <button
                   type="button"
-                  className={[styles.headerButton, styles.projectCell].join(' ')}
-                  onClick={() => toggleSort('project')}
-                  aria-label="Sort by project name"
+                  className={[styles.headerButton, styles.fileTypeCell].join(' ')}
+                  onClick={() => toggleSort('fileType')}
+                  aria-label="Sort by file type"
                 >
-                  Project name {sortIndicator('project')}
+                  File type {sortIndicator('fileType')}
+                </button>
+                <button
+                  type="button"
+                  className={[styles.headerButton, styles.sizeCell].join(' ')}
+                  onClick={() => toggleSort('sizeBytes')}
+                  aria-label="Sort by file size"
+                >
+                  Size {sortIndicator('sizeBytes')}
                 </button>
                 <button
                   type="button"
@@ -253,7 +268,8 @@ export default function TestsPage() {
                   <strong>{testSet.name}</strong>
                   <span>{testSet.filename}</span>
                 </div>
-                <div className={styles.projectCell}>{testSet.project || <span className={styles.muted}>—</span>}</div>
+                <div className={styles.fileTypeCell}>{getFileType(testSet.filename)}</div>
+                <div className={styles.sizeCell}>{formatBytes(testSet.sizeBytes)}</div>
                 <div className={styles.countCell}>{testSet.testCaseCount ?? 0}</div>
                 <div className={styles.dateCell}>{format(new Date(testSet.createdAt), 'h:mma d MMM yyyy')}</div>
               </Button>

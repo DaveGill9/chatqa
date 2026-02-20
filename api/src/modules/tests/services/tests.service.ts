@@ -30,6 +30,7 @@ export class TestsService {
     const createdSet = await this.testSetModel.create({
       name: setName,
       filename: file.originalname,
+      sizeBytes: typeof file.size === 'number' ? file.size : file.buffer?.length,
       project: meta.project?.trim() || undefined,
     });
 
@@ -52,6 +53,7 @@ export class TestsService {
       testSetId: createdSet._id,
       name: createdSet.name,
       filename: createdSet.filename,
+      sizeBytes: createdSet.sizeBytes ?? null,
       project: createdSet.project ?? null,
       testCaseCount: cases.length,
     };
