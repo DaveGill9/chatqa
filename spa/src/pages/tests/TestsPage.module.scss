@@ -342,7 +342,17 @@
   }
 }
 
-.openResultsButton {
+.previewActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-top: 20px;
+}
+
+.runButton {
+  width: 100%;
+}
+
+.openResultsButton {
   width: 100%;
 }

@@ -375,6 +375,30 @@ interface TestSetPreviewProps {
 function TestSetPreview({ testSetId, onClose, onOpenResults }: TestSetPreviewProps) {
   const { data, loading } = useFetchRequest<TestSetDetail>(testSetId ? `/tests/sets/${testSetId}` : '');
   const previewCases = data?.cases ?? [];
+  const [running, setRunning] = useState(false);
+
+  const runTestSet = async () => {
+    if (!testSetId || running) return;
+
+    setRunning(true);
+    try {
+      const response = await apiClient.post(`/tests/sets/${testSetId}/run`);
+      const result = response.data as {
+        testRunId: string;
+        testSetId: string;
+        status: string;
+        total: number;
+        successCount: number;
+        failedCount: number;
+      };
+      toast.success(`Run completed: ${result.successCount}/${result.total} passed (${result.failedCount} failed)`);
+      onOpenResults(testSetId);
+    } catch (error) {
+      toast.error(error);
+    } finally {
+      setRunning(false);
+    }
+  };
 
   return (
     <aside className={styles.preview}>
@@ -403,9 +427,30 @@ function TestSetPreview({ testSetId, onClose, onOpenResults }: TestSetPreviewPro
               ))}
 
               {testSetId && (
-                <Button type="button" className={styles.openResultsButton} onClick={() => onOpenResults(testSetId)}>
-                  View Results
-                </Button>
+                <div className={styles.previewActions}>
+                  <Button
+                    type="button"
+                    variant="accent"
+                    working={running}
+                    className={styles.runButton}
+                    aria-disabled={running}
+                    onClick={runTestSet}
+                  >
+                    Run
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="border"
+                    className={styles.openResultsButton}
+                    aria-disabled={running}
+                    onClick={() => {
+                      if (running) return;
+                      onOpenResults(testSetId);
+                    }}
+                  >
+                    View Results
+                  </Button>
+                </div>
               )}
             </>
           )}

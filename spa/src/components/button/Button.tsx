@@ -1,13 +1,15 @@
 import Loading from '../feedback/Loading';
 import styles from './Button.module.scss';
 
+type ButtonHtmlProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'type'>;
+
 type ButtonProps =
-    | (React.HTMLAttributes<HTMLButtonElement> & {
+    | (ButtonHtmlProps & {
           type: 'inline' | 'block' | 'flex';
           variant?: undefined;
           working?: undefined;
       })
-    | (React.HTMLAttributes<HTMLButtonElement> & {
+    | (ButtonHtmlProps & {
           type: 'button';
           variant?: 'accent' | 'border';
           working?: boolean | undefined;
