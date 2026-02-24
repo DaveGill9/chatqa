@@ -64,21 +64,6 @@
   }
 }
 
-.refreshButton {
-  background: var(--background-color) !important;
-  border: 1px solid var(--background-offset-color) !important;
-  color: var(--text-color) !important;
-  border-radius: 999px !important;
-  padding: 10px 16px !important;
-  font-weight: 700 !important;
-
-  &:hover {
-    filter: none !important;
-    transform: none !important;
-    background: rgba(var(--background-offset-color-rgb), 0.35) !important;
-  }
-}
-
 .listCard {
   border: 1px solid var(--background-offset-color);
   border-radius: 12px;

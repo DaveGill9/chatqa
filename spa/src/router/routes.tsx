@@ -12,14 +12,6 @@ export const routes: RouteObject[] = [
     element: <DashboardPage key="dashboard" />,
   },
   {
-    path: '/tests',
-    element: <DashboardPage key="dashboard-tests" />,
-  },
-  {
-    path: '/results',
-    element: <DashboardPage key="dashboard-results" />,
-  },
-  {
     path: '/logs',
     element: <LogsPage key="logs-list" />,
     children: [

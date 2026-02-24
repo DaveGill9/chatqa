@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
@@ -246,11 +246,7 @@ export default function DashboardPage() {
       <Page.Header
         title="Dashboard"
         subtitle="Upload test sets, run tests, and view results."
-      >
-        <Button type="button" className={styles.uploadButton} onClick={selectFiles} disabled={uploading}>
-          <Icon name="upload" /> {uploading ? 'Uploading…' : 'Upload Test Set'}
-        </Button>
-      </Page.Header>
+      />
 
       <Page.Content>
         <div className={styles.layout}>
@@ -273,8 +269,8 @@ export default function DashboardPage() {
                   className={styles.searchInput}
                 />
               </div>
-              <Button type="button" className={styles.refreshButton} onClick={() => { resetResultSets(); }}>
-                Refresh
+              <Button type="button" className={styles.uploadButton} onClick={selectFiles} disabled={uploading}>
+                <Icon name="upload" /> {uploading ? 'Uploading…' : 'Upload Test Set'}
               </Button>
             </div>
 
@@ -338,33 +334,43 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {isExpanded && (
-                      <div className={styles.runsBox}>
-                        <div className={styles.runsTable}>
-                          <div className={styles.runsTableHeader}>
-                            <span className={styles.runsTableIcon} />
-                            <span className={styles.runsTableCol}>Test run ID</span>
-                            <span className={styles.runsTableCol}>Date run</span>
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                          style={{ overflow: 'hidden' }}
+                        >
+                          <div className={styles.runsBox}>
+                            <div className={styles.runsTable}>
+                              <div className={styles.runsTableHeader}>
+                                <span className={styles.runsTableIcon} />
+                                <span className={styles.runsTableCol}>Run ID</span>
+                                <span className={styles.runsTableCol}>Date run</span>
+                              </div>
+                              {runs.length === 0 ? (
+                                <div className={styles.noRuns}>No runs yet</div>
+                              ) : (
+                                runs.map((run) => (
+                                  <button
+                                    key={run._id}
+                                    type="button"
+                                    className={styles.runItem}
+                                    onClick={() => handleViewResult(run._id)}
+                                  >
+                                    <span className={styles.runIcon}><Icon name="description" /></span>
+                                    <span className={styles.runId}>{run.testRunId}</span>
+                                    <span className={styles.runDate}>{format(new Date(run.createdAt), 'h:mma d MMM yyyy')}</span>
+                                  </button>
+                                ))
+                              )}
+                            </div>
                           </div>
-                          {runs.length === 0 ? (
-                            <div className={styles.noRuns}>No runs yet</div>
-                          ) : (
-                            runs.map((run) => (
-                              <button
-                                key={run._id}
-                                type="button"
-                                className={styles.runItem}
-                                onClick={() => handleViewResult(run._id)}
-                              >
-                                <span className={styles.runIcon}><Icon name="description" /></span>
-                                <span className={styles.runId}>{run.testRunId}</span>
-                                <span className={styles.runDate}>{format(new Date(run.createdAt), 'h:mma d MMM yyyy')}</span>
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 );
               })}
