@@ -17,14 +17,9 @@ const Navigation = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement
       </div>
 
       <div className={styles.menu}>
-        <NavLink to="/tests" className={activeClassName}>
+        <NavLink to="/" end className={activeClassName}>
           <Icon name="task_alt" />
           Tests
-        </NavLink>
-
-        <NavLink to="/results" className={activeClassName}>
-          <Icon name="query_stats" />
-          Results
         </NavLink>
 
         {!disableAuth && (
