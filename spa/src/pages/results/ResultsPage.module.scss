@@ -279,6 +279,7 @@
 }
 
 @media (max-width: 900px) {
+
   .resultFile,
   .listHeader {
     grid-template-columns: minmax(240px, 1fr) minmax(220px, 1fr) 140px 180px;
@@ -295,13 +296,23 @@
   }
 }
 
+// Preview dialog (centered modal)
+.previewDialog {
+  width: 90vw;
+  max-width: 700px;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0 !important;
+}
+
 .preview {
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  width: 100%;
-  background: var(--background-color);
-  border-left: 1px solid var(--background-offset-color);
-  overflow-y: auto;
-  overflow-x: hidden;
+  min-height: 0;
+  overflow: hidden;
   padding: 24px;
 }
 
@@ -322,6 +333,9 @@
 }
 
 .previewContent {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   line-height: 1.5;
 }
 
@@ -376,8 +390,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  height: 100%;
-  max-height: calc(100vh - 320px);
+  min-height: 0;
+  max-height: min(600px, calc(95vh - 240px));
   overflow-y: auto;
 }
 
@@ -422,6 +436,72 @@
   color: var(--text-color);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+// Markdown prose for Expected, Actual, Reasoning
+.caseValueMarkdown {
+  white-space: normal;
+
+  p {
+    margin: 0 0 0.75em;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  ul,
+  ol {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+  }
+
+  li {
+    margin: 0.25em 0;
+  }
+
+  code {
+    background: rgba(var(--background-offset-color-rgb), 0.5);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  pre {
+    margin: 0.75em 0;
+    padding: 12px;
+    background: rgba(var(--background-offset-color-rgb), 0.4);
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.85em;
+    line-height: 1.4;
+
+    code {
+      background: none;
+      padding: 0;
+    }
+  }
+
+  strong {
+    font-weight: 700;
+  }
+
+  blockquote {
+    margin: 0.5em 0;
+    padding-left: 1em;
+    border-left: 3px solid var(--background-offset-color);
+  }
+
+  h1,
+  h2,
+  h3 {
+    margin: 1em 0 0.5em;
+    font-weight: 700;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
 }
 
 .carouselNav {

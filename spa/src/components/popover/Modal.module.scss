@@ -9,6 +9,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: default;
+}
+
+.background[role="button"] {
+    cursor: pointer;
 }
 
 .modal {

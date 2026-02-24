@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NavLink, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 import useEmblaCarousel from 'embla-carousel-react';
 import usePagedRequest from '../../hooks/usePagedRequest';
 import Feedback from '../../components/feedback/Feedback';
 import Icon from '../../components/icon/Icon';
 import Page from '../../components/layout/Page';
-import AnimatedDetailLayout from '../../components/layout/AnimatedDetailLayout';
+import Modal from '../../components/popover/Modal';
 import IconButton from '../../components/icon/IconButton';
 import Input from '../../components/input/Input';
 import Button from '../../components/button/Button';
@@ -345,26 +347,25 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          <AnimatePresence>
-            {previewVisible && selectedSetId && (
-              <AnimatedDetailLayout
-                width={860}
+          {previewVisible && selectedSetId && (
+            <Modal
+              visible
+              className={styles.previewDialog}
+              onClose={() => {
+                setPreviewVisible(false);
+                setSelectedSetId(null);
+              }}
+            >
+              <ResultSetPreview
+                resultSet={selectedSet}
                 onClose={() => {
                   setPreviewVisible(false);
                   setSelectedSetId(null);
                 }}
-              >
-                <ResultSetPreview
-                  resultSet={selectedSet}
-                  onClose={() => {
-                    setPreviewVisible(false);
-                    setSelectedSetId(null);
-                  }}
-                  onDownload={(resultSetId, formatType) => void downloadResultSet(resultSetId, formatType)}
-                />
-              </AnimatedDetailLayout>
-            )}
-          </AnimatePresence>
+                onDownload={(resultSetId, formatType) => void downloadResultSet(resultSetId, formatType)}
+              />
+            </Modal>
+          )}
         </div>
       </Page.Content>
     </Page>
@@ -402,7 +403,9 @@ function ResultSetPreview({ resultSet, onClose, onDownload }: ResultSetPreviewPr
     const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
     emblaApi.on('select', onSelect);
     onSelect();
-    return () => emblaApi.off('select', onSelect);
+    return () => {
+      emblaApi.off('select', onSelect);
+    };
   }, [emblaApi]);
 
   useEffect(() => {
@@ -502,15 +505,27 @@ function ResultSetPreview({ resultSet, onClose, onDownload }: ResultSetPreviewPr
                       </div>
                       <div className={styles.caseCardSection}>
                         <span className={styles.caseLabel}>Expected</span>
-                        <div className={styles.caseValue}>{row.expected || '—'}</div>
+                        <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                            {row.expected || '—'}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                       <div className={styles.caseCardSection}>
                         <span className={styles.caseLabel}>Actual</span>
-                        <div className={styles.caseValue}>{row.actual || '—'}</div>
+                        <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                            {row.actual || '—'}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                       <div className={styles.caseCardSection}>
                         <span className={styles.caseLabel}>Reasoning</span>
-                        <div className={styles.caseValue}>{row.reasoning || '—'}</div>
+                        <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                            {row.reasoning || '—'}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                     </div>
                   </div>
