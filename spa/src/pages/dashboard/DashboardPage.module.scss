@@ -91,7 +91,7 @@
   top: 0;
   z-index: 2;
   display: grid;
-  grid-template-columns: 32px 1fr 80px 70px 140px 1fr;
+  grid-template-columns: 32px 0.9fr 1fr 1.5fr 1fr 1fr;
   gap: 12px;
   padding: 10px 20px;
   background: var(--background-color);
@@ -105,12 +105,13 @@
 .headerButton {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 0;
   margin: 0;
   border: none;
   background: transparent;
-  text-align: left;
+  text-align: center;
   font-weight: 700;
   font-size: 0.85em;
   color: var(--gray-color);
@@ -121,16 +122,29 @@
   }
 }
 
+.headerTitle {
+  justify-content: flex-start;
+  text-align: left;
+}
+
 .headerActions {
   font-weight: 700;
   font-size: 0.85em;
   color: var(--gray-color);
+  text-align: right;
 }
 
-.headerButton.sizeCell,
-.headerButton.countCell,
-.headerButton.dateCell {
-  justify-content: flex-end;
+.headerStatus {
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--gray-color);
+  text-align: center;
+}
+
+.statusCell {
+  font-size: 0.9em;
+  color: var(--gray-color);
+  text-align: center;
 }
 
 .sortIndicator {
@@ -148,7 +162,7 @@
 
 .testSetMain {
   display: grid;
-  grid-template-columns: 32px 1fr 80px 70px 140px 1fr;
+  grid-template-columns: 32px 0.9fr 1fr 1.5fr 1fr 1fr;
   gap: 12px;
   align-items: center;
   padding: 12px 20px;
@@ -181,9 +195,10 @@
 
 .titleCell {
   min-width: 0;
+  text-align: left;
 
   strong {
-    font-weight: 800;
+    font-weight: 400;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -191,20 +206,20 @@
 }
 
 .sizeCell {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
   color: var(--gray-color);
   white-space: nowrap;
 }
 
 .countCell {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
   color: var(--gray-color);
 }
 
 .dateCell {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
   color: var(--gray-color);
   white-space: nowrap;
@@ -221,44 +236,101 @@
   font-size: 0.85em !important;
 }
 
-.runsList {
-  padding: 0 20px 12px 52px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.runsBox {
+  margin: 0 20px 12px 52px;
+  border: 1px solid rgba(var(--background-offset-color-rgb), 0.6);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--background-color);
 }
 
-.runItem {
+.runsTable {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 14px;
-  border: 1px solid var(--background-offset-color);
-  border-radius: 8px;
-  background: rgba(var(--background-offset-color-rgb), 0.2);
-  cursor: pointer;
-  text-align: left;
-  font-size: 0.9em;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  flex-direction: column;
+}
 
-  &:hover {
-    background: rgba(var(--background-offset-color-rgb), 0.4);
-    border-color: rgba(var(--primary-color-rgb), 0.35);
+.runsTableHeader {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 12px;
+  padding: 10px 16px;
+  font-size: 0.8em;
+  font-weight: 700;
+  color: var(--gray-color);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(var(--background-offset-color-rgb), 0.6);
+}
+
+.runsTableIcon {
+  width: 32px;
+}
+
+.runsTableCol {
+  &:last-child {
+    text-align: right;
+    min-width: 120px;
   }
 }
 
-.runName {
-  font-weight: 600;
+.runItem {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px;
+  border: none;
+  border-top: 1px solid rgba(var(--background-offset-color-rgb), 0.6);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9em;
+  font-family: inherit;
+  color: inherit;
+  width: 100%;
+  transition: background-color 0.15s ease;
+
+  &:first-of-type {
+    border-top: none;
+  }
+
+  &:hover {
+    background: rgba(var(--gray-color-rgb), 0.08);
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(var(--primary-color-rgb), 0.5);
+    outline-offset: -2px;
+  }
+}
+
+.runIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-color);
+}
+
+.runId {
+  font-variant-numeric: tabular-nums;
   color: var(--text-color);
 }
 
 .runDate {
   font-variant-numeric: tabular-nums;
   color: var(--gray-color);
+  text-align: right;
+  min-width: 120px;
 }
 
 .noRuns {
   padding: 16px;
+  border-top: none;
   color: var(--gray-color);
   font-size: 0.9em;
 }
@@ -410,8 +482,8 @@
 
 .previewMeta {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 24px;
   margin-bottom: 14px;
 }
 

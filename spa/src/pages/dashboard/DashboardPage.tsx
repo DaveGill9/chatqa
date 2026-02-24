@@ -66,17 +66,8 @@ type TestRow = {
   [key: string]: unknown;
 };
 
-type SortKey = 'createdAt' | 'name' | 'sizeBytes' | 'testCaseCount';
+type SortKey = 'createdAt' | 'name' | 'testCaseCount';
 type SortDirection = 'asc' | 'desc';
-
-const formatBytes = (bytes?: number | null) => {
-  if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes <= 0) return '—';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const value = bytes / 1024 ** exponent;
-  const digits = exponent === 0 ? 0 : value >= 10 ? 1 : 2;
-  return `${value.toFixed(digits)} ${units[exponent]}`;
-};
 
 const stripFileExtension = (str: string) => {
   if (!str || typeof str !== 'string') return str;
@@ -136,11 +127,6 @@ export default function DashboardPage() {
         case 'name': {
           const base = compareText(a.name, b.name);
           return direction * (base || compareText(a.filename, b.filename));
-        }
-        case 'sizeBytes': {
-          const av = a.sizeBytes ?? 0;
-          const bv = b.sizeBytes ?? 0;
-          return direction * (compareNumber(av, bv) || compareText(a.name, b.name));
         }
         case 'testCaseCount': {
           const av = a.testCaseCount ?? 0;
@@ -296,11 +282,8 @@ export default function DashboardPage() {
               {!!sortedTestSets.length && (
                 <div className={styles.listHeader} role="row">
                   <span className={styles.headerSpacer} />
-                  <button type="button" className={styles.headerButton} onClick={() => toggleSort('name')} aria-label="Sort by title">
+                  <button type="button" className={[styles.headerButton, styles.headerTitle].join(' ')} onClick={() => toggleSort('name')} aria-label="Sort by title">
                     Title {sortIndicator('name')}
-                  </button>
-                  <button type="button" className={[styles.headerButton, styles.sizeCell].join(' ')} onClick={() => toggleSort('sizeBytes')} aria-label="Sort by size">
-                    Size {sortIndicator('sizeBytes')}
                   </button>
                   <button type="button" className={[styles.headerButton, styles.countCell].join(' ')} onClick={() => toggleSort('testCaseCount')} aria-label="Sort by tests">
                     Tests {sortIndicator('testCaseCount')}
@@ -308,6 +291,7 @@ export default function DashboardPage() {
                   <button type="button" className={[styles.headerButton, styles.dateCell].join(' ')} onClick={() => toggleSort('createdAt')} aria-label="Sort by date">
                     Added {sortIndicator('createdAt')}
                   </button>
+                  <span className={styles.headerStatus} aria-hidden>Status</span>
                   <span className={styles.headerActions} aria-hidden>Actions</span>
                 </div>
               )}
@@ -339,9 +323,11 @@ export default function DashboardPage() {
                       <div className={styles.titleCell}>
                         <strong>{stripFileExtension(testSet.name)}</strong>
                       </div>
-                      <div className={styles.sizeCell}>{formatBytes(testSet.sizeBytes)}</div>
                       <div className={styles.countCell}>{testSet.testCaseCount ?? 0}</div>
                       <div className={styles.dateCell}>{format(new Date(testSet.createdAt), 'h:mma d MMM yyyy')}</div>
+                      <div className={styles.statusCell}>
+                        {runs.length === 0 ? 'No runs' : `${runs.length} run${runs.length === 1 ? '' : 's'}`}
+                      </div>
                       <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
                         <Button type="button" variant="accent" className={styles.rowBtn} onClick={(e) => handleRun(e, testSet._id)}>
                           Run
@@ -353,22 +339,30 @@ export default function DashboardPage() {
                     </div>
 
                     {isExpanded && (
-                      <div className={styles.runsList}>
-                        {runs.length === 0 ? (
-                          <div className={styles.noRuns}>No runs yet</div>
-                        ) : (
-                          runs.map((run) => (
-                            <button
-                              key={run._id}
-                              type="button"
-                              className={styles.runItem}
-                              onClick={() => handleViewResult(run._id)}
-                            >
-                              <span className={styles.runName}>{stripFileExtension(run.name)}</span>
-                              <span className={styles.runDate}>{format(new Date(run.createdAt), 'h:mma d MMM yyyy')}</span>
-                            </button>
-                          ))
-                        )}
+                      <div className={styles.runsBox}>
+                        <div className={styles.runsTable}>
+                          <div className={styles.runsTableHeader}>
+                            <span className={styles.runsTableIcon} />
+                            <span className={styles.runsTableCol}>Test run ID</span>
+                            <span className={styles.runsTableCol}>Date run</span>
+                          </div>
+                          {runs.length === 0 ? (
+                            <div className={styles.noRuns}>No runs yet</div>
+                          ) : (
+                            runs.map((run) => (
+                              <button
+                                key={run._id}
+                                type="button"
+                                className={styles.runItem}
+                                onClick={() => handleViewResult(run._id)}
+                              >
+                                <span className={styles.runIcon}><Icon name="description" /></span>
+                                <span className={styles.runId}>{run.testRunId}</span>
+                                <span className={styles.runDate}>{format(new Date(run.createdAt), 'h:mma d MMM yyyy')}</span>
+                              </button>
+                            ))
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
