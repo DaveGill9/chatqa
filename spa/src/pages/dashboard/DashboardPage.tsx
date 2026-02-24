@@ -78,6 +78,12 @@ const formatBytes = (bytes?: number | null) => {
   return `${value.toFixed(digits)} ${units[exponent]}`;
 };
 
+const stripFileExtension = (str: string) => {
+  if (!str || typeof str !== 'string') return str;
+  const lastDot = str.lastIndexOf('.');
+  return lastDot > 0 ? str.slice(0, lastDot) : str;
+};
+
 export default function DashboardPage() {
   const [searchParams] = useSearchParams();
   const setIdFromUrl = searchParams.get('setId');
@@ -331,7 +337,7 @@ export default function DashboardPage() {
                         <Icon name={isExpanded ? 'expand_less' : 'expand_more'} />
                       </button>
                       <div className={styles.titleCell}>
-                        <strong>{testSet.name}</strong>
+                        <strong>{stripFileExtension(testSet.name)}</strong>
                       </div>
                       <div className={styles.sizeCell}>{formatBytes(testSet.sizeBytes)}</div>
                       <div className={styles.countCell}>{testSet.testCaseCount ?? 0}</div>
@@ -358,7 +364,7 @@ export default function DashboardPage() {
                               className={styles.runItem}
                               onClick={() => handleViewResult(run._id)}
                             >
-                              <span className={styles.runName}>{run.name}</span>
+                              <span className={styles.runName}>{stripFileExtension(run.name)}</span>
                               <span className={styles.runDate}>{format(new Date(run.createdAt), 'h:mma d MMM yyyy')}</span>
                             </button>
                           ))
@@ -413,7 +419,7 @@ function TestSetPreview({ testSetId, onClose }: TestSetPreviewProps) {
   return (
     <aside className={styles.preview}>
       <div className={styles.previewHeader}>
-        <strong>{data?.filename || data?.name || ''}</strong>
+        <strong>{stripFileExtension(data?.filename || data?.name || '')}</strong>
         <Button type="button" variant="border" onClick={onClose} aria-label="Close">
           Close
         </Button>
@@ -559,7 +565,7 @@ function ResultSetPreview({ resultSet, rows, onDownload }: ResultSetPreviewProps
   return (
     <aside className={styles.preview}>
       <div className={styles.previewHeader}>
-        <strong>{resultSet?.name ?? resultSet?.filename ?? ''}</strong>
+        <strong>{stripFileExtension(resultSet?.name ?? resultSet?.filename ?? '')}</strong>
         <div className={styles.previewHeaderActions}>
           <Button type="button" className={styles.downloadBtn} onClick={() => resultSet && onDownload(resultSet._id, 'xlsx')}>
             Download XLSX
@@ -575,7 +581,7 @@ function ResultSetPreview({ resultSet, rows, onDownload }: ResultSetPreviewProps
           <div className={styles.previewMeta}>
             <div>
               <span className={styles.muted}>Test set</span>
-              <div className={styles.metaValue}>{resultSet.testSetFilename || '—'}</div>
+              <div className={styles.metaValue}>{stripFileExtension(resultSet.testSetFilename || '') || '—'}</div>
             </div>
             <div>
               <span className={styles.muted}>Added</span>
