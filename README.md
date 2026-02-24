@@ -372,7 +372,7 @@ EMAIL_DEFAULT_SENDER=DoNotReply@yourdomain.com
 # ============================================
 # Frontend (SPA) Variables
 # ============================================
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=http://localhost:3002
 VITE_MSAL_CLIENT_ID=your-azure-ad-app-client-id
 VITE_MSAL_TENANT_ID=your-azure-ad-tenant-id
 ```
@@ -380,8 +380,8 @@ VITE_MSAL_TENANT_ID=your-azure-ad-tenant-id
 ### Optional Variables
 
 ```env
-# API Port (default: 3000)
-PORT=3000
+# API Port (default: 3002)
+PORT=3002
 
 # Node Environment
 NODE_ENV=development

@@ -2,7 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { UserProvider } from './context/UserProvider.tsx'
-import { SocketProvider } from './context/SocketProvider.tsx'
 import ErrorPage from './pages/error/ErrorPage.tsx'
 import { routes } from './router/routes.tsx'
 import { PopoverContainer } from './components/popover/PopoverPortal.tsx'
@@ -28,9 +27,7 @@ const router = createBrowserRouter([
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <UserProvider>
-      <SocketProvider>
-        <RouterProvider router={router} />
-      </SocketProvider>
+      <RouterProvider router={router} />
     </UserProvider>
   </StrictMode>,
 )
