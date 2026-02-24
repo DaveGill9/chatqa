@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router-dom';
 import LogsPage from '../pages/logs/LogsPage.tsx';
 import LogDetailPage from '../pages/logs/LogDetailPage.tsx';
 import DashboardPage from '../pages/dashboard/DashboardPage.tsx';
+import ResultDetailPage from '../pages/dashboard/ResultDetailPage.tsx';
 
 // Important: The key is used to animate the outlet when the route changes.
 // The key should be stable for children of the route so that the parent does not animate when the child changes.
@@ -10,6 +11,10 @@ export const routes: RouteObject[] = [
   {
     path: '/',
     element: <DashboardPage key="dashboard" />,
+  },
+  {
+    path: '/results/:resultSetId',
+    element: <ResultDetailPage key="result-detail" />,
   },
   {
     path: '/logs',

@@ -1,0 +1,198 @@
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.downloadBtn {
+  padding: 6px 14px !important;
+  font-size: 0.85em !important;
+}
+
+.content {
+  padding: 24px 30px;
+  line-height: 1.5;
+}
+
+.muted {
+  color: var(--gray-color);
+}
+
+.metaValue {
+  font-weight: 700;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+.meta {
+  margin-bottom: 16px;
+
+  .muted {
+    font-size: 0.85em;
+  }
+}
+
+.caseCard {
+  border: 1px solid var(--background-offset-color);
+  border-radius: 8px;
+  padding: 16px 20px;
+  background: rgba(var(--background-offset-color-rgb), 0.25);
+}
+
+.caseCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--background-offset-color);
+}
+
+.caseId {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-color);
+}
+
+.caseScore {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary-color);
+  font-size: 1rem;
+}
+
+.caseCardSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.caseLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-color);
+}
+
+.caseValue {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-color);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.caseValueMarkdown {
+  white-space: normal;
+
+  p {
+    margin: 0 0 0.75em;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  ul,
+  ol {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+  }
+
+  li {
+    margin: 0.25em 0;
+  }
+
+  code {
+    background: rgba(var(--background-offset-color-rgb), 0.5);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+}
+
+.carouselWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.embla {
+  overflow: hidden;
+}
+
+.emblaContainer {
+  display: flex;
+  touch-action: pan-y pinch-zoom;
+}
+
+.emblaSlide {
+  flex: 0 0 100%;
+  min-width: 0;
+  padding-right: 16px;
+}
+
+.carouselNav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.carouselBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--background-offset-color);
+  background: var(--background-color);
+  color: var(--text-color);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(var(--background-offset-color-rgb), 0.35);
+    border-color: rgba(var(--primary-color-rgb), 0.35);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.carouselDots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.carouselDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background: var(--background-offset-color);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    background: rgba(var(--gray-color-rgb), 0.6);
+  }
+}
+
+.carouselDotActive {
+  background: var(--primary-color);
+  transform: scale(1.2);
+}

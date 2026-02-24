@@ -1,18 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import ReactMarkdown from 'react-markdown';
-import remarkBreaks from 'remark-breaks';
-import remarkGfm from 'remark-gfm';
-import useEmblaCarousel from 'embla-carousel-react';
 import usePagedRequest from '../../hooks/usePagedRequest';
 import useFetchRequest from '../../hooks/useFetchRequest';
 import Feedback from '../../components/feedback/Feedback';
 import Icon from '../../components/icon/Icon';
 import Page from '../../components/layout/Page';
 import AnimatedDetailLayout from '../../components/layout/AnimatedDetailLayout';
-import Modal from '../../components/popover/Modal';
 import Input from '../../components/input/Input';
 import Button from '../../components/button/Button';
 import { addSearchParams } from '../../utils';
@@ -56,16 +51,6 @@ type ResultSet = {
   testSetFilename?: string | null;
 };
 
-type TestRow = {
-  id: string;
-  input: string;
-  expected: string;
-  actual?: string;
-  score?: number;
-  reasoning?: string;
-  [key: string]: unknown;
-};
-
 type SortKey = 'createdAt' | 'name' | 'testCaseCount';
 type SortDirection = 'asc' | 'desc';
 
@@ -77,6 +62,7 @@ const stripFileExtension = (str: string) => {
 
 export default function DashboardPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const setIdFromUrl = searchParams.get('setId');
 
   const [keywords, setKeywords] = useState('');
@@ -84,7 +70,6 @@ export default function DashboardPage() {
   const [expandedSetId, setExpandedSetId] = useState<string | null>(null);
   const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [selectedResultSetId, setSelectedResultSetId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
@@ -185,7 +170,7 @@ export default function DashboardPage() {
   };
 
   const handleViewResult = (resultSetId: string) => {
-    setSelectedResultSetId(resultSetId);
+    navigate(`/results/${resultSetId}`);
   };
 
   const handleSearch = () => {
@@ -398,12 +383,6 @@ export default function DashboardPage() {
           </AnimatePresence>
         </div>
       </Page.Content>
-
-      <ResultsModal
-        resultSetId={selectedResultSetId}
-        resultSets={resultSetsData ?? []}
-        onClose={() => setSelectedResultSetId(null)}
-      />
     </Page>
   );
 }
@@ -442,213 +421,6 @@ function TestSetPreview({ testSetId, onClose }: TestSetPreviewProps) {
               </article>
             ))}
           </>
-        )}
-      </div>
-    </aside>
-  );
-}
-
-function ResultsModal({
-  resultSetId,
-  resultSets,
-  onClose,
-}: {
-  resultSetId: string | null;
-  resultSets: ResultSet[];
-  onClose: () => void;
-}) {
-  const selectedSet = useMemo(
-    () => (resultSetId ? resultSets.find((rs) => rs._id === resultSetId) ?? null : null),
-    [resultSetId, resultSets]
-  );
-  const [rows, setRows] = useState<TestRow[] | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-
-  useEffect(() => {
-    if (!resultSetId) {
-      setRows(null);
-      setModalVisible(false);
-      return;
-    }
-    let cancelled = false;
-    const fetchRows = async () => {
-      try {
-        const response = await apiClient.get(`/tests/results/sets/${resultSetId}`);
-        const resData = response.data as { cases?: Array<Record<string, unknown>> };
-        const cases = resData.cases ?? [];
-        const mapped: TestRow[] = cases.map((c) => ({
-          id: String(c.id ?? ''),
-          input: String(c.input ?? ''),
-          expected: String(c.expected ?? ''),
-          actual: String(c.actual ?? ''),
-          score: typeof c.score === 'number' ? c.score : 0,
-          reasoning: String(c.reasoning ?? ''),
-        }));
-        if (!cancelled) {
-          setRows(mapped);
-          setModalVisible(true);
-        }
-      } catch (error) {
-        if (!cancelled) toast.error(error);
-      }
-    };
-    void fetchRows();
-    return () => {
-      cancelled = true;
-    };
-  }, [resultSetId]);
-
-  const downloadResultSet = async (id: string, formatType: 'csv' | 'xlsx') => {
-    try {
-      const response = await apiClient.get(`/tests/results/sets/${id}/download`, {
-        params: { format: formatType },
-        responseType: 'blob',
-      });
-      const blob = new Blob([response.data], {
-        type: formatType === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `result-set-${id}.${formatType}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      toast.error(error);
-    }
-  };
-
-  return (
-    <Modal visible={modalVisible && !!rows} className={styles.previewDialog} onClose={onClose}>
-      <ResultSetPreview
-        resultSet={selectedSet}
-        rows={rows ?? []}
-        onDownload={(id, formatType) => void downloadResultSet(id, formatType)}
-      />
-    </Modal>
-  );
-}
-
-interface ResultSetPreviewProps {
-  resultSet: ResultSet | null;
-  rows: TestRow[];
-  onDownload: (resultSetId: string, formatType: 'csv' | 'xlsx') => void;
-}
-
-function ResultSetPreview({ resultSet, rows, onDownload }: ResultSetPreviewProps) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ align: 'start', containScroll: 'trimSnaps' });
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
-  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
-  const scrollTo = useCallback((index: number) => emblaApi?.scrollTo(index), [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
-    emblaApi.on('select', onSelect);
-    onSelect();
-    return () => {
-      emblaApi.off('select', onSelect);
-    };
-  }, [emblaApi]);
-
-  useEffect(() => {
-    if (emblaApi && rows.length > 0) {
-      emblaApi.scrollTo(0);
-      setSelectedIndex(0);
-    }
-  }, [resultSet?._id, emblaApi, rows]);
-
-  return (
-    <aside className={styles.preview}>
-      <div className={styles.previewHeader}>
-        <strong>{stripFileExtension(resultSet?.name ?? resultSet?.filename ?? '')}</strong>
-        <div className={styles.previewHeaderActions}>
-          <Button type="button" className={styles.downloadBtn} onClick={() => resultSet && onDownload(resultSet._id, 'xlsx')}>
-            Download XLSX
-          </Button>
-          <Button type="button" variant="border" className={styles.downloadBtn} onClick={() => resultSet && onDownload(resultSet._id, 'csv')}>
-            Download CSV
-          </Button>
-        </div>
-      </div>
-      <div className={styles.previewContent}>
-        {!resultSet && <Feedback type="empty">Select a result to preview</Feedback>}
-        {resultSet && (
-          <div className={styles.previewMeta}>
-            <div>
-              <span className={styles.muted}>Test set</span>
-              <div className={styles.metaValue}>{stripFileExtension(resultSet.testSetFilename || '') || '—'}</div>
-            </div>
-            <div>
-              <span className={styles.muted}>Added</span>
-              <div className={styles.metaValue}>{format(new Date(resultSet.createdAt), 'h:mma d MMM yyyy')}</div>
-            </div>
-          </div>
-        )}
-        {resultSet && rows.length === 0 && <Feedback type="empty">No rows found</Feedback>}
-        {resultSet && rows.length > 0 && (
-          <div className={styles.carouselWrap}>
-            <div className={styles.embla} ref={emblaRef}>
-              <div className={styles.emblaContainer}>
-                {rows.map((row, index) => (
-                  <div key={`${row.id}-${index}`} className={styles.emblaSlide}>
-                    <div className={styles.caseCard}>
-                      <div className={styles.caseCardHeader}>
-                        <span className={styles.caseId}>Case {row.id}</span>
-                        <span className={styles.caseScore}>{typeof row.score === 'number' ? row.score.toFixed(2) : '—'}</span>
-                      </div>
-                      <div className={styles.caseCardSection}>
-                        <span className={styles.caseLabel}>Input</span>
-                        <div className={styles.caseValue}>{row.input || '—'}</div>
-                      </div>
-                      <div className={styles.caseCardSection}>
-                        <span className={styles.caseLabel}>Expected</span>
-                        <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
-                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.expected || '—'}</ReactMarkdown>
-                        </div>
-                      </div>
-                      <div className={styles.caseCardSection}>
-                        <span className={styles.caseLabel}>Actual</span>
-                        <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
-                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.actual || '—'}</ReactMarkdown>
-                        </div>
-                      </div>
-                      <div className={styles.caseCardSection}>
-                        <span className={styles.caseLabel}>Reasoning</span>
-                        <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
-                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.reasoning || '—'}</ReactMarkdown>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className={styles.carouselNav}>
-              <button type="button" className={styles.carouselBtn} onClick={scrollPrev} disabled={selectedIndex === 0} aria-label="Previous">
-                ‹
-              </button>
-              <div className={styles.carouselDots} role="tablist">
-                {rows.map((_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    role="tab"
-                    aria-selected={index === selectedIndex}
-                    className={[styles.carouselDot, index === selectedIndex ? styles.carouselDotActive : ''].join(' ')}
-                    onClick={() => scrollTo(index)}
-                  />
-                ))}
-              </div>
-              <button type="button" className={styles.carouselBtn} onClick={scrollNext} disabled={selectedIndex === rows.length - 1} aria-label="Next">
-                ›
-              </button>
-            </div>
-          </div>
         )}
       </div>
     </aside>
