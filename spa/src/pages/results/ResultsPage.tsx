@@ -69,6 +69,7 @@ export default function ResultsPage() {
   const [fileFilter, setFileFilter] = useState<FileFilter>('all');
   const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewRows, setPreviewRows] = useState<TestRow[] | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
@@ -155,6 +156,51 @@ export default function ResultsPage() {
     if (!selectedSetId) return null;
     return (data ?? []).find((set) => set._id === selectedSetId) ?? null;
   }, [data, selectedSetId]);
+
+  useEffect(() => {
+    if (!selectedSetId) {
+      setPreviewRows(null);
+      return;
+    }
+
+    let cancelled = false;
+    let transitionTimer: ReturnType<typeof setTimeout> | null = null;
+    setPreviewRows(null);
+
+    const fetchRows = async () => {
+      try {
+        const response = await apiClient.get(`/tests/results/sets/${selectedSetId}`);
+        const resData = response.data as { cases?: Array<{ id?: unknown; input?: string; expected?: string; actual?: string; score?: number; reasoning?: string }> };
+        const cases = resData.cases ?? [];
+        const rows: TestRow[] = cases.map((c) => ({
+          id: String(c.id ?? ''),
+          input: String(c.input ?? ''),
+          expected: String(c.expected ?? ''),
+          actual: String(c.actual ?? ''),
+          score: typeof c.score === 'number' ? c.score : 0,
+          reasoning: String(c.reasoning ?? ''),
+        }));
+
+        if (!cancelled) {
+          setPreviewRows(rows);
+          transitionTimer = setTimeout(() => {
+            if (!cancelled) setPreviewVisible(true);
+          }, 250);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(error);
+          setSelectedSetId(null);
+        }
+      }
+    };
+
+    void fetchRows();
+    return () => {
+      cancelled = true;
+      if (transitionTimer) clearTimeout(transitionTimer);
+    };
+  }, [selectedSetId]);
 
   const downloadResultSet = async (resultSetId: string, formatType: 'csv' | 'xlsx') => {
     try {
@@ -329,10 +375,7 @@ export default function ResultsPage() {
                   type="block"
                   key={resultSet._id}
                   className={[styles.resultFile, selectedSetId === resultSet._id ? styles.active : ''].join(' ')}
-                  onClick={() => {
-                    setSelectedSetId(resultSet._id);
-                    setPreviewVisible(true);
-                  }}
+                  onClick={() => setSelectedSetId(resultSet._id)}
                 >
                   <div className={styles.titleCell}>
                     <strong>{resultSet.name}</strong>
@@ -347,20 +390,23 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {previewVisible && selectedSetId && (
+          {previewVisible && selectedSetId && previewRows && (
             <Modal
               visible
               className={styles.previewDialog}
               onClose={() => {
                 setPreviewVisible(false);
                 setSelectedSetId(null);
+                setPreviewRows(null);
               }}
             >
               <ResultSetPreview
                 resultSet={selectedSet}
+                rows={previewRows}
                 onClose={() => {
                   setPreviewVisible(false);
                   setSelectedSetId(null);
+                  setPreviewRows(null);
                 }}
                 onDownload={(resultSetId, formatType) => void downloadResultSet(resultSetId, formatType)}
               />
@@ -374,23 +420,12 @@ export default function ResultsPage() {
 
 interface ResultSetPreviewProps {
   resultSet: ResultSet | null;
+  rows: TestRow[];
   onClose: () => void;
   onDownload: (resultSetId: string, formatType: 'csv' | 'xlsx') => void;
 }
 
-type ResultCase = {
-  _id: string;
-  id: string;
-  input: string;
-  expected: string;
-  actual: string;
-  score: number;
-  reasoning: string;
-};
-
-function ResultSetPreview({ resultSet, onClose, onDownload }: ResultSetPreviewProps) {
-  const [rows, setRows] = useState<TestRow[]>([]);
-  const [loadingRows, setLoadingRows] = useState(false);
+function ResultSetPreview({ resultSet, rows, onClose, onDownload }: ResultSetPreviewProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ align: 'start', containScroll: 'trimSnaps' });
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -414,39 +449,6 @@ function ResultSetPreview({ resultSet, onClose, onDownload }: ResultSetPreviewPr
       setSelectedIndex(0);
     }
   }, [resultSet?._id, emblaApi, rows]);
-
-  useEffect(() => {
-    const resultSetId = resultSet?._id;
-    if (!resultSetId) {
-      setRows([]);
-      return;
-    }
-
-    const fetchRows = async () => {
-      setLoadingRows(true);
-      try {
-        const response = await apiClient.get(`/tests/results/sets/${resultSetId}`);
-        const data = response.data as { cases?: ResultCase[] };
-        const cases = data.cases ?? [];
-        setRows(
-          cases.map((c) => ({
-            id: String(c.id ?? ''),
-            input: String(c.input ?? ''),
-            expected: String(c.expected ?? ''),
-            actual: String(c.actual ?? ''),
-            score: typeof c.score === 'number' ? c.score : 0,
-            reasoning: String(c.reasoning ?? ''),
-          })),
-        );
-      } catch (error) {
-        toast.error(error);
-      } finally {
-        setLoadingRows(false);
-      }
-    };
-
-    void fetchRows();
-  }, [resultSet?._id]);
 
   return (
     <aside className={styles.preview}>
@@ -485,8 +487,7 @@ function ResultSetPreview({ resultSet, onClose, onDownload }: ResultSetPreviewPr
           </div>
         )}
 
-        {loadingRows && resultSet && <Feedback type="loading" />}
-        {!loadingRows && resultSet && rows.length === 0 && <Feedback type="empty">No rows found for this set</Feedback>}
+        {resultSet && rows.length === 0 && <Feedback type="empty">No rows found for this set</Feedback>}
 
         {resultSet && rows.length > 0 && (
           <div className={styles.carouselWrap}>

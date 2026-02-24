@@ -38,9 +38,9 @@ export default function Modal({ children, className, visible, onClose }: ModalPr
                         aria-label={onClose ? "Close dialog" : undefined}
                     >
                         <motion.div
-                            initial={{ opacity: 0, y: -30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 30 }}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.7 }}
                             transition={{ duration: 0.2 }}
                             className={modalClassName}
                             onClick={(e) => e.stopPropagation()}
