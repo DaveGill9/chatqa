@@ -11,7 +11,12 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);  
   const configService = app.get(ConfigService);
-  const port = process.env.PORT ?? 3000;
+  const port = (() => {
+    const raw =
+      configService.get<string>('PORT') ?? (process.env.PORT ? String(process.env.PORT) : undefined) ?? '3000';
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 3000;
+  })();
 
   // CORS configuration
   // In production, CORS is managed at the infrastructure level
