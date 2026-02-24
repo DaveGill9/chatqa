@@ -345,29 +345,139 @@
   margin-bottom: 14px;
 }
 
-.tableWrap {
-  overflow: auto;
-  border: 1px solid var(--background-offset-color);
-  border-radius: 10px;
+// Carousel
+.carouselWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
+.embla {
+  overflow: hidden;
+}
+
+.emblaContainer {
+  display: flex;
+  touch-action: pan-y pinch-zoom;
+}
+
+.emblaSlide {
+  flex: 0 0 100%;
+  min-width: 0;
+  padding-right: 16px;
+}
+
+.caseCard {
+  background: var(--background-color);
+  border: 1px solid var(--background-offset-color);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
+}
+
+.caseCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--background-offset-color);
+}
+
+.caseId {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-color);
+}
+
+.caseScore {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary-color);
+  font-size: 1rem;
+}
+
+.caseCardSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.caseLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-color);
+}
+
+.caseValue {
   font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-color);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
-  th,
-  td {
-    border-bottom: 1px solid var(--background-offset-color);
-    padding: 8px;
-    text-align: left;
-    vertical-align: top;
+.carouselNav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.carouselBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--background-offset-color);
+  background: var(--background-color);
+  color: var(--text-color);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(var(--background-offset-color-rgb), 0.35);
+    border-color: rgba(var(--primary-color-rgb), 0.35);
   }
 
-  th {
-    background: rgba(var(--background-offset-color-rgb), 0.5);
-    position: sticky;
-    top: 0;
-    z-index: 1;
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
+}
+
+.carouselDots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.carouselDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background: var(--background-offset-color);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    background: rgba(var(--gray-color-rgb), 0.6);
+  }
+}
+
+.carouselDotActive {
+  background: var(--primary-color);
+  transform: scale(1.2);
 }

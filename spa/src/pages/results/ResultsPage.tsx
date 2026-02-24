@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NavLink, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { AnimatePresence } from 'framer-motion';
+import useEmblaCarousel from 'embla-carousel-react';
 import usePagedRequest from '../../hooks/usePagedRequest';
 import Feedback from '../../components/feedback/Feedback';
 import Icon from '../../components/icon/Icon';
@@ -333,7 +334,6 @@ export default function ResultsPage() {
                 >
                   <div className={styles.titleCell}>
                     <strong>{resultSet.name}</strong>
-                    <span className={styles.muted}>{resultSet.filename}</span>
                   </div>
                   <div className={styles.testSetCell}>{resultSet.testSetFilename ?? '—'}</div>
                   <div className={styles.fileTypeCell}>{getFileType(resultSet.filename)}</div>
@@ -390,6 +390,27 @@ type ResultCase = {
 function ResultSetPreview({ resultSet, onClose, onDownload }: ResultSetPreviewProps) {
   const [rows, setRows] = useState<TestRow[]>([]);
   const [loadingRows, setLoadingRows] = useState(false);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ align: 'start', containScroll: 'trimSnaps' });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+  const scrollTo = useCallback((index: number) => emblaApi?.scrollTo(index), [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    emblaApi.on('select', onSelect);
+    onSelect();
+    return () => emblaApi.off('select', onSelect);
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (emblaApi && rows.length > 0) {
+      emblaApi.scrollTo(0);
+      setSelectedIndex(0);
+    }
+  }, [resultSet?._id, emblaApi, rows]);
 
   useEffect(() => {
     const resultSetId = resultSet?._id;
@@ -427,7 +448,7 @@ function ResultSetPreview({ resultSet, onClose, onDownload }: ResultSetPreviewPr
   return (
     <aside className={styles.preview}>
       <div className={styles.previewHeader}>
-        <strong>{resultSet?.filename || ''}</strong>
+        <strong>{resultSet?.name ?? resultSet?.filename ?? ''}</strong>
         <IconButton icon="right_panel_close" onClick={onClose} />
       </div>
 
@@ -465,31 +486,70 @@ function ResultSetPreview({ resultSet, onClose, onDownload }: ResultSetPreviewPr
         {!loadingRows && resultSet && rows.length === 0 && <Feedback type="empty">No rows found for this set</Feedback>}
 
         {resultSet && rows.length > 0 && (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>id</th>
-                  <th>input</th>
-                  <th>expected</th>
-                  <th>actual</th>
-                  <th>score</th>
-                  <th>reasoning</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className={styles.carouselWrap}>
+            <div className={styles.embla} ref={emblaRef}>
+              <div className={styles.emblaContainer}>
                 {rows.map((row, index) => (
-                  <tr key={`${row.id}-${index}`}>
-                    <td>{String(row.id ?? '')}</td>
-                    <td>{String(row.input ?? '')}</td>
-                    <td>{String(row.expected ?? '')}</td>
-                    <td>{String(row.actual ?? '')}</td>
-                    <td>{typeof row.score === 'number' ? row.score.toFixed(2) : ''}</td>
-                    <td>{String(row.reasoning ?? '')}</td>
-                  </tr>
+                  <div key={`${row.id}-${index}`} className={styles.emblaSlide}>
+                    <div className={styles.caseCard}>
+                      <div className={styles.caseCardHeader}>
+                        <span className={styles.caseId}>Case {row.id}</span>
+                        <span className={styles.caseScore}>{typeof row.score === 'number' ? row.score.toFixed(2) : '—'}</span>
+                      </div>
+                      <div className={styles.caseCardSection}>
+                        <span className={styles.caseLabel}>Input</span>
+                        <div className={styles.caseValue}>{row.input || '—'}</div>
+                      </div>
+                      <div className={styles.caseCardSection}>
+                        <span className={styles.caseLabel}>Expected</span>
+                        <div className={styles.caseValue}>{row.expected || '—'}</div>
+                      </div>
+                      <div className={styles.caseCardSection}>
+                        <span className={styles.caseLabel}>Actual</span>
+                        <div className={styles.caseValue}>{row.actual || '—'}</div>
+                      </div>
+                      <div className={styles.caseCardSection}>
+                        <span className={styles.caseLabel}>Reasoning</span>
+                        <div className={styles.caseValue}>{row.reasoning || '—'}</div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
+            <div className={styles.carouselNav}>
+              <button
+                type="button"
+                className={styles.carouselBtn}
+                onClick={scrollPrev}
+                disabled={selectedIndex === 0}
+                aria-label="Previous test case"
+              >
+                ‹
+              </button>
+              <div className={styles.carouselDots} role="tablist" aria-label="Test case slides">
+                {rows.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    role="tab"
+                    aria-selected={index === selectedIndex}
+                    aria-label={`Go to test case ${index + 1}`}
+                    className={[styles.carouselDot, index === selectedIndex ? styles.carouselDotActive : ''].join(' ')}
+                    onClick={() => scrollTo(index)}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                className={styles.carouselBtn}
+                onClick={scrollNext}
+                disabled={selectedIndex === rows.length - 1}
+                aria-label="Next test case"
+              >
+                ›
+              </button>
+            </div>
           </div>
         )}
       </div>
