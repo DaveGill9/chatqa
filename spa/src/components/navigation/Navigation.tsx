@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import Icon from '../icon/Icon';
+import WaveDots from '../loading/WaveDots';
 import styles from './Navigation.module.scss';
 import SettingsMenu from './SettingsMenu';
 import { classList } from '../../utils';
@@ -26,7 +27,6 @@ function getJobTitle(job: Job): string {
 
 function JobCardItem({ job }: { job: Job }) {
   const statusIcon =
-    job.status === 'running' ? 'progress_activity' :
     job.status === 'completed' ? 'check_circle' :
     job.status === 'failed' ? 'error' :
     'schedule';
@@ -34,7 +34,7 @@ function JobCardItem({ job }: { job: Job }) {
   return (
     <div className={[styles.jobCard, styles[`jobStatus_${job.status}`]].join(' ')}>
       <div className={styles.jobCardIcon}>
-        <Icon name={statusIcon} />
+        {job.status === 'running' ? <WaveDots className={styles.waveDotsIcon} /> : <Icon name={statusIcon} />}
       </div>
       <div className={styles.jobCardBody}>
         <span className={styles.jobCardLabel}>{getJobTitle(job)}</span>

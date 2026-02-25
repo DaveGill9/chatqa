@@ -120,7 +120,10 @@
 
 .jobStatus_running .jobCardIcon {
   color: var(--primary-color);
-  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.waveDotsIcon {
+  color: inherit;
 }
 
 .jobStatus_completed .jobCardIcon {
@@ -135,7 +138,3 @@
   color: var(--gray-color);
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
