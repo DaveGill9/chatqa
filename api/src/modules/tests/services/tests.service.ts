@@ -117,6 +117,7 @@ export class TestsService {
     try {
       this.jobsService.updateJob(jobId, {
         status: 'running',
+        stage: 'Converting',
         detail: 'Converting rows…',
       });
 
@@ -126,6 +127,7 @@ export class TestsService {
         (current, total) => {
           this.jobsService.updateJob(jobId, {
             status: 'running',
+            stage: 'Converting',
             detail: `Converting batch ${current}/${total}…`,
             meta: { current, total },
           });
@@ -355,13 +357,14 @@ export class TestsService {
       .replace(/\\t/g, '\t');
 
     try {
-      this.jobsService.updateJob(jobId, { status: 'running', detail: `Evaluating case 1/${cases.length}…` });
+      this.jobsService.updateJob(jobId, { status: 'running', stage: 'Calling chatbot', detail: `Evaluating case 1/${cases.length}…` });
       let currentIndex = 0;
       for (const testCase of cases) {
         currentIndex++;
         this.jobsService.updateJob(jobId, {
           status: 'running',
           detail: `Evaluating case ${currentIndex}/${cases.length}…`,
+          stage: 'Calling chatbot',
           meta: { current: currentIndex, total: cases.length, successCount, failedCount },
         });
         const row = this.toTestRow(testCase);
@@ -397,6 +400,8 @@ export class TestsService {
               `  → Follow-up ${turn}: ${decision.followupMessage.substring(0, 50)}...`,
             );
 
+            this.jobsService.updateJob(jobId, { stage: 'Sending follow-up' });
+
             responses.push(`[Follow-up ${turn}]: ${decision.followupMessage}`);
             followupHistory.push(decision.followupMessage);
 
@@ -421,6 +426,8 @@ export class TestsService {
             }
             previousAnswer = chat.answer;
           }
+
+          this.jobsService.updateJob(jobId, { stage: 'Scoring result' });
 
           const actual = responses.join(responseSeparator);
           const score = await this.scoreService.score(row.input, row.expected, actual);

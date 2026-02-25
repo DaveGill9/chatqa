@@ -8,6 +8,7 @@ export interface Job {
   label: string;
   status: JobStatus;
   detail?: string;
+  stage?: string; // e.g. "Calling chatbot", "Sending follow-up", "Scoring result"
   createdAt: string; // ISO string
   completedAt?: string; // ISO string
   meta?: {

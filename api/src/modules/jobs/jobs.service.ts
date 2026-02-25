@@ -25,11 +25,12 @@ export class JobsService extends EventEmitter {
     return id;
   }
 
-  updateJob(id: string, update: Partial<Pick<Job, 'status' | 'detail' | 'completedAt'>> & { meta?: Partial<Job['meta']> }): void {
+  updateJob(id: string, update: Partial<Pick<Job, 'status' | 'detail' | 'stage' | 'completedAt'>> & { meta?: Partial<Job['meta']> }): void {
     const job = this.jobs.get(id);
     if (!job) return;
     if (update.status) job.status = update.status;
     if (update.detail !== undefined) job.detail = update.detail;
+    if (update.stage !== undefined) job.stage = update.stage;
     if (update.completedAt) job.completedAt = update.completedAt;
     if (update.meta) job.meta = { ...job.meta, ...update.meta };
     this.emitJob(id, job);

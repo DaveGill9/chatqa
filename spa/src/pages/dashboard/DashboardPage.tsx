@@ -334,7 +334,7 @@ export default function DashboardPage() {
                   <Icon name="swap_horiz" /> Convert format
                 </Button>
                 <Button type="button" className={styles.uploadButton} onClick={selectFiles} disabled={uploading}>
-                <Icon name="upload" /> {uploading ? 'Uploading…' : 'Upload Test Set'}
+                  <Icon name="upload" /> {uploading ? 'Uploading…' : 'Upload Test Set'}
                 </Button>
               </div>
             </div>

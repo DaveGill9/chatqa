@@ -39,6 +39,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  margin-top: 42px; /* Align Jobs title with the Page header divider below Dashboard/Results */
 }
 
 .jobQueueTitle {
@@ -94,6 +95,13 @@
   font-size: 0.9em;
   font-weight: 600;
   color: var(--text-color);
+}
+
+.jobCardRunId {
+  font-size: 0.75em;
+  font-family: ui-monospace, monospace;
+  color: rgba(var(--gray-color-rgb), 0.8);
+  word-break: break-all;
 }
 
 .jobCardDetail {

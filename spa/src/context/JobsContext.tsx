@@ -10,6 +10,7 @@ export interface Job {
   label: string;
   status: JobStatus;
   detail?: string;
+  stage?: string;
   createdAt: string;
   completedAt?: string;
   meta?: {
