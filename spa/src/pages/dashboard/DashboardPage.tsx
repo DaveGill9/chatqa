@@ -11,6 +11,7 @@ import AnimatedDetailLayout from '../../components/layout/AnimatedDetailLayout';
 import Input from '../../components/input/Input';
 import Button from '../../components/button/Button';
 import ConvertFormatDialog from './ConvertFormatDialog';
+import Alert from '../../components/popover/Alert';
 import { addSearchParams } from '../../utils';
 import apiClient from '../../services/api-client';
 import { toast } from '../../services/toast-service';
@@ -76,6 +77,7 @@ export default function DashboardPage() {
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
+  const [deleteConfirmSetId, setDeleteConfirmSetId] = useState<string | null>(null);
 
   const [appliedKeywords, setAppliedKeywords] = useState('');
   const testSetsUrl = addSearchParams('/tests/sets', appliedKeywords ? { keywords: appliedKeywords } : {});
@@ -175,6 +177,23 @@ export default function DashboardPage() {
 
   const handleViewResult = (resultSetId: string) => {
     navigate(`/results/${resultSetId}`);
+  };
+
+  const handleDelete = async (testSetId: string) => {
+    try {
+      await apiClient.delete(`/tests/sets/${testSetId}`);
+      setTestSetsData((prev) => (prev ? prev.filter((s) => s._id !== testSetId) : []));
+      setDeleteConfirmSetId(null);
+      if (selectedSetId === testSetId) {
+        setPreviewVisible(false);
+        setSelectedSetId(null);
+      }
+      if (expandedSetId === testSetId) setExpandedSetId(null);
+      resetResultSets();
+      toast.success('Test set deleted');
+    } catch (error) {
+      toast.error(error);
+    }
   };
 
   const handleRename = async (testSetId: string, newName: string, currentName: string) => {
@@ -397,6 +416,18 @@ export default function DashboardPage() {
                         <Button type="button" variant="border" className={styles.rowBtn} onClick={(e) => handlePreview(e, testSet._id)}>
                           Preview
                         </Button>
+                        <Button
+                          type="button"
+                          variant="border"
+                          className={styles.rowBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmSetId(testSet._id);
+                          }}
+                          aria-label={`Delete test set ${stripFileExtension(testSet.name)}`}
+                        >
+                          <Icon name="delete" /> Delete
+                        </Button>
                       </div>
                     </div>
 
@@ -448,6 +479,22 @@ export default function DashboardPage() {
             onClose={() => setConvertDialogVisible(false)}
             onConverted={handleConverted}
           />
+          <Alert
+            title="Delete test set"
+            visible={!!deleteConfirmSetId}
+            setVisible={(v) => !v && setDeleteConfirmSetId(null)}
+            confirmText="Delete"
+            onConfirm={
+              deleteConfirmSetId
+                ? () => handleDelete(deleteConfirmSetId)
+                : undefined
+            }
+          >
+            <p>
+              Are you sure you want to delete <strong>{stripFileExtension(sortedTestSets.find((s) => s._id === deleteConfirmSetId)?.name ?? 'this test set')}</strong>?
+              This will also remove all test cases, runs, and results.
+            </p>
+          </Alert>
           <AnimatePresence>
             {previewVisible && selectedSetId && (
               <AnimatedDetailLayout

@@ -187,6 +187,23 @@ export class TestsService {
     return { name: set.name };
   }
 
+  async deleteTestSet(testSetId: string): Promise<void> {
+    const set = await this.testSetModel.findById(testSetId).exec();
+    if (!set) {
+      throw new NotFoundException('Test set not found');
+    }
+    const setIdStr = String(set._id);
+    const runs = await this.testRunModel.find({ testSetId: { $in: [setIdStr, set._id as unknown] } }).lean();
+    const runIdStrings = runs.map((r) => String(r._id));
+
+    await this.resultModel.deleteMany({ testRunId: { $in: runIdStrings } });
+    await this.resultCaseModel.deleteMany({ testSetId: { $in: [setIdStr, set._id as unknown] } });
+    await this.resultSetModel.deleteMany({ testSetId: { $in: [setIdStr, set._id as unknown] } });
+    await this.testRunModel.deleteMany({ testSetId: { $in: [setIdStr, set._id as unknown] } });
+    await this.testCaseModel.deleteMany({ testSetId: { $in: [setIdStr, set._id as unknown] } });
+    await this.testSetModel.findByIdAndDelete(testSetId);
+  }
+
   async getTestSet(testSetId: string) {
     const set = await this.testSetModel.findById(testSetId).lean();
     if (!set) {
