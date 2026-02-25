@@ -196,38 +196,6 @@
   }
 }
 
-.titleButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-
-  &:hover .titlePen {
-    opacity: 1;
-  }
-}
-
-.titlePen {
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  color: var(--gray-color);
-
-  svg {
-    width: 16px;
-    height: 16px;
-  }
-}
-
 .titleInput {
   width: 100%;
   min-width: 0;

@@ -395,21 +395,7 @@ export default function DashboardPage() {
                             onClick={(e) => e.stopPropagation()}
                           />
                         ) : (
-                          <button
-                            type="button"
-                            className={styles.titleButton}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingSetId(testSet._id);
-                            }}
-                          >
-                            <strong>{stripFileExtension(testSet.name)}</strong>
-                            <span className={styles.titlePen} aria-hidden>
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                              </svg>
-                            </span>
-                          </button>
+                          <strong>{stripFileExtension(testSet.name)}</strong>
                         )}
                       </div>
                       <div className={styles.countCell}>{testSet.testCaseCount ?? 0}</div>
