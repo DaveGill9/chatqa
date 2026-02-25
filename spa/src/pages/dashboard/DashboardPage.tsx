@@ -297,12 +297,14 @@ export default function DashboardPage() {
                   className={styles.searchInput}
                 />
               </div>
-              <Button type="button" className={styles.uploadButton} onClick={() => setConvertDialogVisible(true)} disabled={uploading}>
-                <Icon name="swap_horiz" /> Convert format
-              </Button>
-              <Button type="button" className={styles.uploadButton} onClick={selectFiles} disabled={uploading}>
+              <div className={styles.buttonGroup}>
+                <Button type="button" className={styles.uploadButton} onClick={() => setConvertDialogVisible(true)} disabled={uploading}>
+                  <Icon name="swap_horiz" /> Convert format
+                </Button>
+                <Button type="button" className={styles.uploadButton} onClick={selectFiles} disabled={uploading}>
                 <Icon name="upload" /> {uploading ? 'Uploading…' : 'Upload Test Set'}
-              </Button>
+                </Button>
+              </div>
             </div>
 
             <div className={styles.listCard}>
