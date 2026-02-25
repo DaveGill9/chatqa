@@ -344,10 +344,10 @@ export default function DashboardPage() {
                   <button type="button" className={[styles.headerButton, styles.countCell].join(' ')} onClick={() => toggleSort('testCaseCount')} aria-label="Sort by tests">
                     Tests {sortIndicator('testCaseCount')}
                   </button>
+                  <span className={styles.headerStatus} aria-hidden>Status</span>
                   <button type="button" className={[styles.headerButton, styles.dateCell].join(' ')} onClick={() => toggleSort('createdAt')} aria-label="Sort by date">
                     Added {sortIndicator('createdAt')}
                   </button>
-                  <span className={styles.headerStatus} aria-hidden>Status</span>
                   <span className={styles.headerActions} aria-hidden>Actions</span>
                 </div>
               )}
@@ -399,10 +399,10 @@ export default function DashboardPage() {
                         )}
                       </div>
                       <div className={styles.countCell}>{testSet.testCaseCount ?? 0}</div>
-                      <div className={styles.dateCell}>{format(new Date(testSet.createdAt), 'h:mma d MMM yyyy')}</div>
                       <div className={styles.statusCell}>
                         {runs.length === 0 ? 'No runs' : `${runs.length} run${runs.length === 1 ? '' : 's'}`}
                       </div>
+                      <div className={styles.dateCell}>{format(new Date(testSet.createdAt), 'h:mma d MMM yyyy')}</div>
                       <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
                         <Popover
                           menu={
