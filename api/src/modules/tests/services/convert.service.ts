@@ -19,16 +19,20 @@ export class ConvertService {
   async convertToTestFormat(
     rows: RawRow[],
     userPrompt?: string,
+    onProgress?: (current: number, total: number) => void,
   ): Promise<TestRow[]> {
     if (rows.length === 0) return [];
 
     const allConverted: TestRow[] = [];
     const columns = this.getColumns(rows);
+    const totalBatches = Math.ceil(rows.length / BATCH_SIZE);
 
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
       const batch = rows.slice(i, i + BATCH_SIZE);
       const converted = await this.convertBatch(batch, columns, userPrompt);
       allConverted.push(...converted);
+      onProgress?.(batchIndex, totalBatches);
     }
 
     return allConverted;

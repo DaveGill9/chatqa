@@ -14,12 +14,13 @@ import { TestRun } from '../entities/test-run.entity';
 import { Result } from '../entities/result.entity';
 import { ResultSet } from '../entities/result-set.entity';
 import { ResultCase } from '../entities/result-case.entity';
-import type { TestRow } from '../types/test.types';
+import type { RawRow, TestRow } from '../types/test.types';
 import { ParserService } from './parser.service';
 import { BotClientService } from './bot-client.service';
 import { ScoreService } from './score.service';
 import { FollowupService } from './followup.service';
 import { ConvertService } from './convert.service';
+import { JobsService } from '../../jobs/jobs.service';
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -42,6 +43,7 @@ export class TestsService {
     private readonly followupService: FollowupService,
     private readonly convertService: ConvertService,
     private readonly configService: ConfigService,
+    private readonly jobsService: JobsService,
   ) {}
 
   async uploadTestSet(file: Express.Multer.File, meta: { name?: string; project?: string }) {
@@ -89,45 +91,94 @@ export class TestsService {
       throw new BadRequestException('File has no rows');
     }
 
-    const rows = await this.convertService.convertToTestFormat(
-      rawRows,
-      meta.prompt?.trim() || undefined,
-    );
-
     const baseName = (file.originalname || 'converted').replace(/\.[^.]+$/, '');
-    const setName = meta.name?.trim() || `${baseName}-converted`;
-    const convertedFilename = `${baseName}-converted.csv`;
+    const filename = file.originalname || 'file';
 
-    const createdSet = await this.testSetModel.create({
-      name: setName,
-      filename: convertedFilename,
-      sizeBytes: null,
-      project: meta.project?.trim() || undefined,
+    const jobId = this.jobsService.addJob('convert_format', {
+      label: 'Convert format',
+      filename,
+      total: 0,
+      current: 0,
     });
 
-    const cases = rows.map((row: TestRow, index) => {
-      const { id, input, expected, actual, score, reasoning, ...extras } = row;
-      return {
-        testSetId: String(createdSet._id),
-        id: String(id || index + 1),
-        input: String(input),
-        expected: String(expected),
-        additionalContext: Object.keys(extras).length ? extras : undefined,
-      };
-    });
+    void this.convertAndUploadBackground(jobId, file, meta, rawRows, baseName, filename);
 
-    if (cases.length > 0) {
-      await this.testCaseModel.insertMany(cases);
+    return { jobId };
+  }
+
+  private async convertAndUploadBackground(
+    jobId: string,
+    file: Express.Multer.File,
+    meta: { name?: string; project?: string; prompt?: string },
+    rawRows: RawRow[],
+    baseName: string,
+    filename: string,
+  ) {
+    try {
+      this.jobsService.updateJob(jobId, {
+        status: 'running',
+        detail: 'Converting rows…',
+      });
+
+      const rows = await this.convertService.convertToTestFormat(
+        rawRows,
+        meta.prompt?.trim() || undefined,
+        (current, total) => {
+          this.jobsService.updateJob(jobId, {
+            status: 'running',
+            detail: `Converting batch ${current}/${total}…`,
+            meta: { current, total },
+          });
+        },
+      );
+
+      const setName = meta.name?.trim() || `${baseName}-converted`;
+      const convertedFilename = `${baseName}-converted.csv`;
+
+      const createdSet = await this.testSetModel.create({
+        name: setName,
+        filename: convertedFilename,
+        sizeBytes: null,
+        project: meta.project?.trim() || undefined,
+      });
+
+      const cases = rows.map((row: TestRow, index) => {
+        const { id, input, expected, actual, score, reasoning, ...extras } = row;
+        return {
+          testSetId: String(createdSet._id),
+          id: String(id || index + 1),
+          input: String(input),
+          expected: String(expected),
+          additionalContext: Object.keys(extras).length ? extras : undefined,
+        };
+      });
+
+      if (cases.length > 0) {
+        await this.testCaseModel.insertMany(cases);
+      }
+
+      this.jobsService.updateJob(jobId, {
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+        detail: `${cases.length} test cases`,
+        meta: {
+          testSetId: String(createdSet._id),
+          testSetName: createdSet.name,
+          filename: createdSet.filename,
+          testCaseCount: cases.length,
+          current: cases.length,
+          total: cases.length,
+        },
+      });
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      this.jobsService.updateJob(jobId, {
+        status: 'failed',
+        completedAt: new Date().toISOString(),
+        detail: errMsg,
+      });
+      throw error;
     }
-
-    return {
-      testSetId: createdSet._id,
-      name: createdSet.name,
-      filename: createdSet.filename,
-      sizeBytes: createdSet.sizeBytes ?? null,
-      project: createdSet.project ?? null,
-      testCaseCount: cases.length,
-    };
   }
 
   async listTestSets(filter?: { keywords?: string; offset?: number; limit?: number }) {
@@ -242,6 +293,32 @@ export class TestsService {
       status: 'running',
     });
 
+    const jobId = this.jobsService.addJob('run_test_set', {
+      label: 'Run test set',
+      testSetId: String(set._id),
+      testSetName: set.name,
+      testRunId: String(run._id),
+      total: cases.length,
+      current: 0,
+    });
+
+    void this.runTestSetBackground(jobId, run._id as unknown as string, set, cases);
+
+    return {
+      jobId,
+      testRunId: run._id,
+      testSetId: set._id,
+      status: 'running',
+      total: cases.length,
+    };
+  }
+
+  private async runTestSetBackground(
+    jobId: string,
+    runId: string,
+    set: { _id: unknown; name: string; filename?: string },
+    cases: TestCase[],
+  ) {
     let successCount = 0;
     let failedCount = 0;
     const rowsForExport: TestRow[] = [];
@@ -278,7 +355,15 @@ export class TestsService {
       .replace(/\\t/g, '\t');
 
     try {
+      this.jobsService.updateJob(jobId, { status: 'running', detail: `Evaluating case 1/${cases.length}…` });
+      let currentIndex = 0;
       for (const testCase of cases) {
+        currentIndex++;
+        this.jobsService.updateJob(jobId, {
+          status: 'running',
+          detail: `Evaluating case ${currentIndex}/${cases.length}…`,
+          meta: { current: currentIndex, total: cases.length, successCount, failedCount },
+        });
         const row = this.toTestRow(testCase);
         this.logger.debug(`Test ${testCase.id}: calling chatbot`);
         try {
@@ -343,7 +428,7 @@ export class TestsService {
           this.logger.debug(`Test ${testCase.id}: score=${score.score}`);
 
           await this.resultModel.create({
-            testRunId: run._id,
+            testRunId: runId,
             testCaseId: testCase._id,
             actual,
             score: score.score,
@@ -358,7 +443,7 @@ export class TestsService {
           });
           resultCasesBase.push({
             resultSetId: '',
-            testRunId: String(run._id),
+            testRunId: runId,
             testSetId: String(set._id),
             testCaseId: String(testCase._id),
             id: String(testCase.id),
@@ -375,7 +460,7 @@ export class TestsService {
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           await this.resultModel.create({
-            testRunId: run._id,
+            testRunId: runId,
             testCaseId: testCase._id,
             actual: '',
             score: 0,
@@ -390,7 +475,7 @@ export class TestsService {
           });
           resultCasesBase.push({
             resultSetId: '',
-            testRunId: String(run._id),
+            testRunId: runId,
             testSetId: String(set._id),
             testCaseId: String(testCase._id),
             id: String(testCase.id),
@@ -422,10 +507,10 @@ export class TestsService {
 
       const [resultSetDoc] = await this.resultSetModel.create([
         {
-          testRunId: String(run._id),
+          testRunId: runId,
           testSetId: String(set._id),
           name: `Results - ${set.name}`,
-          filename: `test-run-${String(run._id)}-results.xlsx`,
+          filename: `test-run-${runId}-results.xlsx`,
           format: 'xlsx',
           sizeBytes: xlsxRowsBuffer.length,
           testCaseCount: rowCount,
@@ -440,9 +525,16 @@ export class TestsService {
       );
 
       await this.testRunModel.updateOne(
-        { _id: run._id },
+        { _id: runId },
         { status: 'completed', completedAt: new Date(), rowCount, resultSizeBytesXlsx },
       );
+
+      this.jobsService.updateJob(jobId, {
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+        detail: `${successCount}/${cases.length} passed`,
+        meta: { successCount, failedCount, current: cases.length, total: cases.length },
+      });
     } catch (error) {
       const rowCount = rowsForExport.length;
       let resultSizeBytesXlsx: number | undefined;
@@ -454,20 +546,19 @@ export class TestsService {
       }
 
       await this.testRunModel.updateOne(
-        { _id: run._id },
+        { _id: runId },
         { status: 'failed', completedAt: new Date(), rowCount, resultSizeBytesXlsx },
       );
+
+      const errMsg = error instanceof Error ? error.message : String(error);
+      this.jobsService.updateJob(jobId, {
+        status: 'failed',
+        completedAt: new Date().toISOString(),
+        detail: errMsg,
+        meta: { successCount, failedCount, current: rowsForExport.length, total: cases.length },
+      });
       throw error;
     }
-
-    return {
-      testRunId: run._id,
-      testSetId: set._id,
-      status: 'completed',
-      total: cases.length,
-      successCount,
-      failedCount,
-    };
   }
 
   async listRunsForSet(testSetId: string) {

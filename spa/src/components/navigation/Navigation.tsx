@@ -1,28 +1,19 @@
+import { formatDistanceToNow } from 'date-fns';
 import Icon from '../icon/Icon';
 import styles from './Navigation.module.scss';
 import SettingsMenu from './SettingsMenu';
 import { classList } from '../../utils';
+import { useJobs, type Job } from '../../context/JobsContext';
 
-type JobStatus = 'running' | 'completed' | 'failed' | 'queued';
+function formatJobTimestamp(job: Job): string {
+  const date = job.completedAt ? new Date(job.completedAt) : new Date(job.createdAt);
+  if (job.status === 'queued' || job.status === 'running') {
+    return job.status === 'running' ? 'In progress' : 'Queued';
+  }
+  return formatDistanceToNow(date, { addSuffix: true });
+}
 
-type JobCard = {
-  id: string;
-  label: string;
-  status: JobStatus;
-  detail?: string;
-  timestamp: string;
-};
-
-// Hard-coded job cards for placeholder. Will be replaced with live job queue.
-const MOCK_JOBS: JobCard[] = [
-  { id: '1', label: 'Run test set', status: 'running', detail: 'Evaluating case 12/45…', timestamp: '2m ago' },
-  { id: '2', label: 'Run test set', status: 'completed', detail: '42/45 passed', timestamp: '8m ago' },
-  { id: '3', label: 'Upload test set', status: 'completed', detail: 'NLA Testing 1.xlsx', timestamp: '15m ago' },
-  { id: '4', label: 'Run test set', status: 'failed', detail: 'Connection timeout', timestamp: '1h ago' },
-  { id: '5', label: 'Run test set', status: 'queued', detail: 'Waiting…', timestamp: '—' },
-];
-
-function JobCardItem({ job }: { job: JobCard }) {
+function JobCardItem({ job }: { job: Job }) {
   const statusIcon =
     job.status === 'running' ? 'progress_activity' :
     job.status === 'completed' ? 'check_circle' :
@@ -37,7 +28,7 @@ function JobCardItem({ job }: { job: JobCard }) {
       <div className={styles.jobCardBody}>
         <span className={styles.jobCardLabel}>{job.label}</span>
         {job.detail && <span className={styles.jobCardDetail}>{job.detail}</span>}
-        <span className={styles.jobCardTime}>{job.timestamp}</span>
+        <span className={styles.jobCardTime}>{formatJobTimestamp(job)}</span>
       </div>
     </div>
   );
@@ -45,6 +36,7 @@ function JobCardItem({ job }: { job: JobCard }) {
 
 const Navigation = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
   const classNames = classList(styles.navigation, className);
+  const { jobs } = useJobs();
 
   return (
     <nav className={classNames} {...props}>
@@ -55,7 +47,7 @@ const Navigation = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement
       <div className={styles.jobQueue}>
         <h2 className={styles.jobQueueTitle}>Jobs</h2>
         <div className={styles.jobCardList}>
-          {MOCK_JOBS.slice(0, 10).map((job) => (
+          {jobs.slice(0, 10).map((job) => (
             <JobCardItem key={job.id} job={job} />
           ))}
         </div>

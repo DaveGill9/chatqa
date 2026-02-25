@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JobsModule } from '../jobs/jobs.module';
 import { TestSet, TestSetSchema } from './entities/test-set.entity';
 import { TestCase, TestCaseSchema } from './entities/test-case.entity';
 import { TestRun, TestRunSchema } from './entities/test-run.entity';
@@ -16,6 +17,7 @@ import { TestsController } from './controllers/tests.controller';
 
 @Module({
   imports: [
+    JobsModule,
     MongooseModule.forFeature([
       { name: TestSet.name, schema: TestSetSchema },
       { name: TestCase.name, schema: TestCaseSchema },

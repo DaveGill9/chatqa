@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -12,9 +12,11 @@ import Input from '../../components/input/Input';
 import Button from '../../components/button/Button';
 import ConvertFormatDialog from './ConvertFormatDialog';
 import Alert from '../../components/popover/Alert';
+import Popover from '../../components/popover/Popover';
 import { addSearchParams } from '../../utils';
 import apiClient from '../../services/api-client';
 import { toast } from '../../services/toast-service';
+import { useJobs } from '../../context/JobsContext';
 import styles from './DashboardPage.module.scss';
 
 type TestSet = {
@@ -78,18 +80,33 @@ export default function DashboardPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [deleteConfirmSetId, setDeleteConfirmSetId] = useState<string | null>(null);
+  const [openMenuSetId, setOpenMenuSetId] = useState<string | null>(null);
 
   const [appliedKeywords, setAppliedKeywords] = useState('');
   const testSetsUrl = addSearchParams('/tests/sets', appliedKeywords ? { keywords: appliedKeywords } : {});
   const { data: testSetsData, setData: setTestSetsData, loading: testSetsLoading } = usePagedRequest<TestSet>(testSetsUrl, { limit: 200 });
 
   const { data: resultSetsData, loading: resultSetsLoading, reset: resetResultSets } = usePagedRequest<ResultSet>('/tests/results/sets', { limit: 500 });
+  const { jobs } = useJobs();
+  const processedRunIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (setIdFromUrl) {
       setExpandedSetId(setIdFromUrl);
     }
   }, [setIdFromUrl]);
+
+  useEffect(() => {
+    const completed = jobs.filter(
+      (j) => j.type === 'run_test_set' && (j.status === 'completed' || j.status === 'failed'),
+    );
+    for (const j of completed) {
+      if (!processedRunIds.current.has(j.id)) {
+        processedRunIds.current.add(j.id);
+        resetResultSets();
+      }
+    }
+  }, [jobs, resetResultSets]);
 
   const runsByTestSet = useMemo(() => {
     const map = new Map<string, ResultSet[]>();
@@ -149,26 +166,22 @@ export default function DashboardPage() {
     setExpandedSetId((prev) => (prev === testSetId ? null : testSetId));
   };
 
-  const handlePreview = (e: React.MouseEvent, testSetId: string) => {
-    e.stopPropagation();
+  const handlePreview = (testSetId: string) => {
     setSelectedSetId(testSetId);
     setPreviewVisible(true);
   };
 
-  const handleRun = async (e: React.MouseEvent, testSetId: string) => {
-    e.stopPropagation();
+  const handleRun = async (testSetId: string) => {
     try {
       const response = await apiClient.post(`/tests/sets/${testSetId}/run`);
       const result = response.data as {
+        jobId: string;
         testRunId: string;
         testSetId: string;
         status: string;
         total: number;
-        successCount: number;
-        failedCount: number;
       };
-      toast.success(`Run completed: ${result.successCount}/${result.total} passed (${result.failedCount} failed)`);
-      resetResultSets();
+      toast.success(`Run started (${result.total} cases). Watch the Jobs panel for progress.`);
       setExpandedSetId(testSetId);
     } catch (error) {
       toast.error(error);
@@ -410,24 +423,74 @@ export default function DashboardPage() {
                         {runs.length === 0 ? 'No runs' : `${runs.length} run${runs.length === 1 ? '' : 's'}`}
                       </div>
                       <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
-                        <Button type="button" variant="accent" className={styles.rowBtn} onClick={(e) => handleRun(e, testSet._id)}>
-                          Run
-                        </Button>
-                        <Button type="button" variant="border" className={styles.rowBtn} onClick={(e) => handlePreview(e, testSet._id)}>
-                          Preview
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="border"
-                          className={styles.rowBtn}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteConfirmSetId(testSet._id);
-                          }}
-                          aria-label={`Delete test set ${stripFileExtension(testSet.name)}`}
+                        <Popover
+                          menu={
+                            <ul className={styles.actionsMenu}>
+                              <li>
+                                <button
+                                  type="button"
+                                  className={styles.menuItem}
+                                  onClick={() => {
+                                    setEditingSetId(testSet._id);
+                                    setOpenMenuSetId(null);
+                                  }}
+                                >
+                                  <Icon name="edit" /> Rename
+                                </button>
+                              </li>
+                              <li>
+                                <button
+                                  type="button"
+                                  className={styles.menuItem}
+                                  onClick={() => {
+                                    handlePreview(testSet._id);
+                                    setOpenMenuSetId(null);
+                                  }}
+                                >
+                                  <Icon name="visibility" /> Preview
+                                </button>
+                              </li>
+                              <li>
+                                <button
+                                  type="button"
+                                  className={styles.menuItem}
+                                  onClick={() => {
+                                    void handleRun(testSet._id);
+                                    setOpenMenuSetId(null);
+                                  }}
+                                >
+                                  <Icon name="play_arrow" /> Run
+                                </button>
+                              </li>
+                              <li>
+                                <button
+                                  type="button"
+                                  className={`${styles.menuItem} ${styles.menuItemDanger}`}
+                                  onClick={() => {
+                                    setDeleteConfirmSetId(testSet._id);
+                                    setOpenMenuSetId(null);
+                                  }}
+                                >
+                                  <Icon name="delete" /> Delete
+                                </button>
+                              </li>
+                            </ul>
+                          }
+                          visible={openMenuSetId === testSet._id}
+                          setVisible={(v) => setOpenMenuSetId(v ? testSet._id : null)}
+                          position="bottom"
+                          anchor="right"
+                          className={styles.actionsPopover}
                         >
-                          <Icon name="delete" /> Delete
-                        </Button>
+                          <button
+                            type="button"
+                            className={styles.menuTrigger}
+                            aria-label={`Actions for ${stripFileExtension(testSet.name)}`}
+                            aria-expanded={openMenuSetId === testSet._id}
+                          >
+                            <Icon name="more_vert" />
+                          </button>
+                        </Popover>
                       </div>
                     </div>
 

@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Modal from '../../components/popover/Modal';
 import Button from '../../components/button/Button';
 import Icon from '../../components/icon/Icon';
 import Textarea from '../../components/input/Textarea';
 import apiClient from '../../services/api-client';
 import { toast } from '../../services/toast-service';
+import { useJobs } from '../../context/JobsContext';
 import styles from './ConvertFormatDialog.module.scss';
 
 interface ConvertFormatDialogProps {
@@ -21,7 +22,31 @@ export default function ConvertFormatDialog({
   const [file, setFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState('');
   const [converting, setConverting] = useState(false);
+  const [pendingJobId, setPendingJobId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { jobs } = useJobs();
+
+  useEffect(() => {
+    if (!pendingJobId) return;
+    const job = jobs.find((j) => j.id === pendingJobId);
+    if (!job) return;
+    if (job.status === 'completed' && job.meta?.testSetId) {
+      onConverted?.({
+        testSetId: job.meta.testSetId,
+        name: job.meta.testSetName ?? 'Converted',
+        filename: job.meta.filename,
+        testCaseCount: job.meta.testCaseCount ?? 0,
+      });
+      toast.success(`Converted and uploaded: ${job.meta.testCaseCount ?? 0} test cases`);
+      setPendingJobId(null);
+      setConverting(false);
+      onClose();
+    } else if (job.status === 'failed') {
+      toast.error(job.detail || 'Conversion failed');
+      setPendingJobId(null);
+      setConverting(false);
+    }
+  }, [jobs, pendingJobId, onConverted, onClose]);
 
   const handleSelectFile = () => {
     fileInputRef.current?.click();
@@ -55,22 +80,14 @@ export default function ConvertFormatDialog({
       }
 
       const response = await apiClient.post('/tests/convert', formData);
-      const created = response.data as {
-        testSetId: string;
-        name: string;
-        filename: string;
-        testCaseCount: number;
-      };
-
-      toast.success(`Converted and uploaded: ${created.testCaseCount} test cases`);
-      onConverted?.(created);
-      handleClose();
+      const { jobId } = response.data as { jobId: string };
+      setPendingJobId(jobId);
+      toast.info('Conversion started. Watch the Jobs panel for progress.');
     } catch (err: unknown) {
       const msg = err && typeof err === 'object' && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : err instanceof Error ? err.message : String(err);
       toast.error(msg || 'Conversion failed');
-    } finally {
       setConverting(false);
     }
   };
@@ -78,6 +95,7 @@ export default function ConvertFormatDialog({
   const handleClose = () => {
     setFile(null);
     setPrompt('');
+    setPendingJobId(null);
     onClose();
   };
 
@@ -85,12 +103,10 @@ export default function ConvertFormatDialog({
     <Modal visible={visible} onClose={handleClose}>
       <div className={styles.dialog}>
         <div className={styles.header}>
-          <Icon name="swap_horiz" />
-          <h2>Convert to test format</h2>
+          <h2>Convert Format</h2>
         </div>
         <p className={styles.description}>
-          Upload a file with arbitrary columns (e.g. input, output, guidance, do-not-dos).
-          AI will convert it to the required format: <strong>id</strong>, <strong>input</strong>, <strong>expected</strong>.
+          Upload a file with any columns. AI converts it to: <strong>id</strong>, <strong>input</strong>, <strong>expected</strong>.
         </p>
 
         <div className={styles.field}>
@@ -120,7 +136,7 @@ export default function ConvertFormatDialog({
             Additional instructions <span className={styles.optional}>(optional)</span>
           </label>
           <Textarea
-            placeholder="E.g. The 'output' column contains the expected answer. Use 'guidance' to enrich the input. Combine do-not-dos into the expected field..."
+            placeholder="E.g. 'output' = expected answer, 'guidance' enriches input"
             value={prompt}
             onTextChange={setPrompt}
             rows={3}
