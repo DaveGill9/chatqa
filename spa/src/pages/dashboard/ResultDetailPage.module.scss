@@ -10,6 +10,12 @@
 }
 
 .content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
   padding: 24px 30px;
   line-height: 1.5;
 }
@@ -33,6 +39,10 @@
 }
 
 .caseCard {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
   border: 1px solid var(--background-offset-color);
   border-radius: 8px;
   padding: 16px 20px;
@@ -40,12 +50,19 @@
 }
 
 .caseCardHeader {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding-bottom: 12px;
   margin-bottom: 12px;
   border-bottom: 1px solid var(--background-offset-color);
+}
+
+.caseCardBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .caseId {
@@ -122,21 +139,32 @@
   flex-direction: column;
   gap: 14px;
   margin-top: 8px;
+  min-height: 0;
+  flex: 1;
 }
 
 .embla {
   overflow: hidden;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .emblaContainer {
   display: flex;
   touch-action: pan-y pinch-zoom;
+  flex: 1;
+  min-height: 0;
 }
 
 .emblaSlide {
   flex: 0 0 100%;
   min-width: 0;
   padding-right: 16px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .carouselNav {

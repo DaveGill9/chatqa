@@ -197,15 +197,11 @@ export class TestsService {
     try {
       for (const testCase of cases) {
         const row = this.toTestRow(testCase);
-        this.logger.debug(`[run ${run._id}] Case ${testCase.id}: calling chatbot`);
+        this.logger.debug(`Test ${testCase.id}: calling chatbot`);
         try {
           let chat = await this.botClientService.callEndpoint(row);
           const responses: string[] = [chat.answer];
           let threadId = chat.threadId;
-
-          this.logger.debug(
-            `[run ${run._id}] Case ${testCase.id}: initial response length=${chat.answer?.length ?? 0}, threadId=${threadId ?? 'none'}`,
-          );
 
           await delay(delayMs);
 
@@ -214,9 +210,7 @@ export class TestsService {
 
           for (let turn = 1; turn <= maxFollowupTurns; turn++) {
             if (!chat.answer || chat.answer.trim().length < 10) {
-              this.logger.debug(
-                `[run ${run._id}] Case ${testCase.id}: response too short, skipping follow-ups`,
-              );
+              this.logger.debug(`  [Skip] Response too short, skipping follow-ups`);
               break;
             }
 
@@ -227,16 +221,12 @@ export class TestsService {
               previousFollowups: followupHistory,
             });
 
-            this.logger.debug(
-              `[run ${run._id}] Case ${testCase.id}: follow-up ${turn} decision needsFollowup=${decision.needsFollowup}, reason=${decision.reason?.slice(0, 50) ?? ''}`,
-            );
-
             if (!decision.needsFollowup || !decision.followupMessage) {
               break;
             }
 
             this.logger.debug(
-              `[run ${run._id}] Case ${testCase.id}: sending follow-up ${turn}: "${decision.followupMessage.substring(0, 50)}..."`,
+              `  → Follow-up ${turn}: ${decision.followupMessage.substring(0, 50)}...`,
             );
 
             responses.push(`[Follow-up ${turn}]: ${decision.followupMessage}`);
@@ -253,15 +243,11 @@ export class TestsService {
               threadId = chat.threadId;
             }
 
-            this.logger.debug(
-              `[run ${run._id}] Case ${testCase.id}: follow-up ${turn} response length=${chat.answer?.length ?? 0}`,
-            );
-
             await delay(delayMs);
 
             if (chat.answer === previousAnswer) {
               this.logger.debug(
-                `[run ${run._id}] Case ${testCase.id}: same response, stopping follow-ups`,
+                `  [Skip] Chatbot returned same response, stopping follow-ups`,
               );
               break;
             }
@@ -271,9 +257,7 @@ export class TestsService {
           const actual = responses.join(responseSeparator);
           const score = await this.scoreService.score(row.input, row.expected, actual);
 
-          this.logger.debug(
-            `[run ${run._id}] Case ${testCase.id}: score=${score.score}, responseCount=${responses.length}`,
-          );
+          this.logger.debug(`Test ${testCase.id}: score=${score.score}`);
 
           await this.resultModel.create({
             testRunId: run._id,

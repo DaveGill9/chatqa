@@ -203,26 +203,28 @@ function ResultCarousel({ rows, testSetName }: { rows: TestRow[]; testSetName: s
                     <span className={styles.caseId}>Case {row.id}</span>
                     <span className={styles.caseScore}>{typeof row.score === 'number' ? row.score.toFixed(2) : '—'}</span>
                   </div>
-                  <div className={styles.caseCardSection}>
-                    <span className={styles.caseLabel}>Input</span>
-                    <div className={styles.caseValue}>{row.input || '—'}</div>
-                  </div>
-                  <div className={styles.caseCardSection}>
-                    <span className={styles.caseLabel}>Expected</span>
-                    <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.expected || '—'}</ReactMarkdown>
+                  <div className={styles.caseCardBody}>
+                    <div className={styles.caseCardSection}>
+                      <span className={styles.caseLabel}>Input</span>
+                      <div className={styles.caseValue}>{row.input || '—'}</div>
                     </div>
-                  </div>
-                  <div className={styles.caseCardSection}>
-                    <span className={styles.caseLabel}>Actual</span>
-                    <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.actual || '—'}</ReactMarkdown>
+                    <div className={styles.caseCardSection}>
+                      <span className={styles.caseLabel}>Expected</span>
+                      <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.expected || '—'}</ReactMarkdown>
+                      </div>
                     </div>
-                  </div>
-                  <div className={styles.caseCardSection}>
-                    <span className={styles.caseLabel}>Reasoning</span>
-                    <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.reasoning || '—'}</ReactMarkdown>
+                    <div className={styles.caseCardSection}>
+                      <span className={styles.caseLabel}>Actual</span>
+                      <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.actual || '—'}</ReactMarkdown>
+                      </div>
+                    </div>
+                    <div className={styles.caseCardSection}>
+                      <span className={styles.caseLabel}>Reasoning</span>
+                      <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.reasoning || '—'}</ReactMarkdown>
+                      </div>
                     </div>
                   </div>
                 </div>
