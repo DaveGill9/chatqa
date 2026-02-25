@@ -166,7 +166,7 @@ export class TestsService {
         meta: {
           testSetId: String(createdSet._id),
           testSetName: createdSet.name,
-          filename: createdSet.filename,
+          filename,
           testCaseCount: cases.length,
           current: cases.length,
           total: cases.length,

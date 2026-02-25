@@ -1,52 +1,25 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import Modal from '../../components/popover/Modal';
 import Button from '../../components/button/Button';
 import Icon from '../../components/icon/Icon';
 import Textarea from '../../components/input/Textarea';
 import apiClient from '../../services/api-client';
 import { toast } from '../../services/toast-service';
-import { useJobs } from '../../context/JobsContext';
 import styles from './ConvertFormatDialog.module.scss';
 
 interface ConvertFormatDialogProps {
   visible: boolean;
   onClose: () => void;
-  onConverted?: (created: { testSetId: string; name: string; filename?: string; testCaseCount: number }) => void;
 }
 
 export default function ConvertFormatDialog({
   visible,
   onClose,
-  onConverted,
 }: ConvertFormatDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState('');
   const [converting, setConverting] = useState(false);
-  const [pendingJobId, setPendingJobId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { jobs } = useJobs();
-
-  useEffect(() => {
-    if (!pendingJobId) return;
-    const job = jobs.find((j) => j.id === pendingJobId);
-    if (!job) return;
-    if (job.status === 'completed' && job.meta?.testSetId) {
-      onConverted?.({
-        testSetId: job.meta.testSetId,
-        name: job.meta.testSetName ?? 'Converted',
-        filename: job.meta.filename,
-        testCaseCount: job.meta.testCaseCount ?? 0,
-      });
-      toast.success(`Converted and uploaded: ${job.meta.testCaseCount ?? 0} test cases`);
-      setPendingJobId(null);
-      setConverting(false);
-      onClose();
-    } else if (job.status === 'failed') {
-      toast.error(job.detail || 'Conversion failed');
-      setPendingJobId(null);
-      setConverting(false);
-    }
-  }, [jobs, pendingJobId, onConverted, onClose]);
 
   const handleSelectFile = () => {
     fileInputRef.current?.click();
@@ -79,15 +52,15 @@ export default function ConvertFormatDialog({
         formData.append('prompt', prompt.trim());
       }
 
-      const response = await apiClient.post('/tests/convert', formData);
-      const { jobId } = response.data as { jobId: string };
-      setPendingJobId(jobId);
-      toast.info('Conversion started. Watch the Jobs panel for progress.');
+      await apiClient.post('/tests/convert', formData);
+      toast.success('Conversion started. Watch the Jobs panel for progress.');
+      handleClose();
     } catch (err: unknown) {
       const msg = err && typeof err === 'object' && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : err instanceof Error ? err.message : String(err);
       toast.error(msg || 'Conversion failed');
+    } finally {
       setConverting(false);
     }
   };
@@ -95,7 +68,6 @@ export default function ConvertFormatDialog({
   const handleClose = () => {
     setFile(null);
     setPrompt('');
-    setPendingJobId(null);
     onClose();
   };
 
@@ -155,7 +127,7 @@ export default function ConvertFormatDialog({
             onClick={handleConvert}
             disabled={!file || converting}
           >
-            {converting ? 'Converting…' : 'Convert & upload'}
+            {converting ? 'Starting…' : 'Convert & upload'}
           </Button>
         </div>
       </div>

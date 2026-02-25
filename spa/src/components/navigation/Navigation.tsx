@@ -19,7 +19,7 @@ function getJobTitle(job: Job): string {
     return `Run test set ${job.meta.testSetName}`;
   }
   if (job.type === 'convert_format' && job.meta?.filename) {
-    return `Convert: ${job.meta.filename}`;
+    return `Convert ${job.meta.filename}`;
   }
   return job.label;
 }
@@ -59,7 +59,7 @@ const Navigation = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement
       </div>
 
       <div className={styles.jobQueue}>
-        <h2 className={styles.jobQueueTitle}>Jobs</h2>
+        <h2 className={styles.jobQueueTitle}>Jobs List</h2>
         <div className={styles.jobCardList}>
           {jobs.slice(0, 10).map((job) => (
             <JobCardItem key={job.id} job={job} />

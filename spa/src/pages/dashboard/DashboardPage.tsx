@@ -84,11 +84,12 @@ export default function DashboardPage() {
 
   const [appliedKeywords, setAppliedKeywords] = useState('');
   const testSetsUrl = addSearchParams('/tests/sets', appliedKeywords ? { keywords: appliedKeywords } : {});
-  const { data: testSetsData, setData: setTestSetsData, loading: testSetsLoading } = usePagedRequest<TestSet>(testSetsUrl, { limit: 200 });
+  const { data: testSetsData, setData: setTestSetsData, loading: testSetsLoading, reset: resetTestSets } = usePagedRequest<TestSet>(testSetsUrl, { limit: 200 });
 
   const { data: resultSetsData, loading: resultSetsLoading, reset: resetResultSets } = usePagedRequest<ResultSet>('/tests/results/sets', { limit: 500 });
   const { jobs } = useJobs();
   const processedRunIds = useRef<Set<string>>(new Set());
+  const processedConvertIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (setIdFromUrl) {
@@ -97,16 +98,26 @@ export default function DashboardPage() {
   }, [setIdFromUrl]);
 
   useEffect(() => {
-    const completed = jobs.filter(
+    const completedRuns = jobs.filter(
       (j) => j.type === 'run_test_set' && (j.status === 'completed' || j.status === 'failed'),
     );
-    for (const j of completed) {
-      if (!processedRunIds.current.has(j.id)) {
-        processedRunIds.current.add(j.id);
-        resetResultSets();
-      }
-    }
+    const toProcess = completedRuns.filter((j) => !processedRunIds.current.has(j.id));
+    if (toProcess.length === 0) return;
+    toProcess.forEach((j) => processedRunIds.current.add(j.id));
+    const timeout = setTimeout(() => resetResultSets(), 500);
+    return () => clearTimeout(timeout);
   }, [jobs, resetResultSets]);
+
+  useEffect(() => {
+    const completedConverts = jobs.filter(
+      (j) => j.type === 'convert_format' && (j.status === 'completed' || j.status === 'failed'),
+    );
+    const toProcess = completedConverts.filter((j) => !processedConvertIds.current.has(j.id));
+    if (toProcess.length === 0) return;
+    toProcess.forEach((j) => processedConvertIds.current.add(j.id));
+    const timeout = setTimeout(() => resetTestSets(), 500);
+    return () => clearTimeout(timeout);
+  }, [jobs, resetTestSets]);
 
   const runsByTestSet = useMemo(() => {
     const map = new Map<string, ResultSet[]>();
@@ -283,22 +294,6 @@ export default function DashboardPage() {
       }
     };
     file.click();
-  };
-
-  const handleConverted = (created: { testSetId: string; name: string; filename?: string; testCaseCount: number }) => {
-    setTestSetsData((prev) => {
-      const next = prev ? [...prev] : [];
-      next.unshift({
-        _id: created.testSetId,
-        name: created.name,
-        filename: created.filename ?? `${created.name}.csv`,
-        sizeBytes: null,
-        project: null,
-        createdAt: new Date().toISOString(),
-        testCaseCount: created.testCaseCount ?? 0,
-      });
-      return next;
-    });
   };
 
   return (
@@ -540,7 +535,6 @@ export default function DashboardPage() {
           <ConvertFormatDialog
             visible={convertDialogVisible}
             onClose={() => setConvertDialogVisible(false)}
-            onConverted={handleConverted}
           />
           <Alert
             title="Delete test set"
