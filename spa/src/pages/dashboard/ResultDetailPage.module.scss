@@ -227,6 +227,7 @@
 
 .caseValueMarkdown {
   white-space: normal;
+  font-family: inherit;
 
   p {
     margin: 0 0 0.75em;
@@ -235,6 +236,21 @@
       margin-bottom: 0;
     }
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: inherit;
+    font-weight: 700;
+    margin: 0.75em 0 0.5em;
+    line-height: 1.3;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  h1 { font-size: 1.25em; }
+  h2 { font-size: 1.15em; }
+  h3 { font-size: 1.08em; }
 
   ul,
   ol {
@@ -247,10 +263,35 @@
   }
 
   code {
+    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'Courier New', monospace;
     background: rgba(var(--background-offset-color-rgb), 0.5);
     padding: 0.15em 0.4em;
     border-radius: 4px;
     font-size: 0.9em;
+  }
+
+  pre {
+    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'Courier New', monospace;
+    font-size: 0.85em;
+    margin: 0.5em 0;
+    padding: 12px;
+    border-radius: 4px;
+    background: rgba(var(--background-offset-color-rgb), 0.5);
+    overflow-x: auto;
+
+    code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+    }
+  }
+
+  blockquote {
+    margin: 0.5em 0;
+    padding-left: 1em;
+    border-left: 4px solid rgba(var(--gray-color-rgb), 0.4);
+    color: var(--gray-color);
+    font-style: italic;
   }
 }
 
