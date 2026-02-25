@@ -16,7 +16,7 @@
   flex: 1;
   height: 100%;
   overflow: hidden;
-  padding: 24px 30px;
+  padding: 24px 48px;
   line-height: 1.5;
 }
 
@@ -45,7 +45,7 @@
   height: 100%;
   border: 1px solid var(--background-offset-color);
   border-radius: 8px;
-  padding: 16px 20px;
+  padding: 16px 24px;
   background: rgba(var(--background-offset-color-rgb), 0.25);
 }
 
@@ -136,16 +136,20 @@
 
 .carouselWrap {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 8px;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 16px;
+  margin: 8px auto 0;
   min-height: 0;
   flex: 1;
+  max-width: 900px;
+  width: 100%;
 }
 
 .embla {
   overflow: hidden;
   min-height: 0;
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -161,25 +165,20 @@
 .emblaSlide {
   flex: 0 0 100%;
   min-width: 0;
-  padding-right: 16px;
+  padding: 0 8px;
   min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
-.carouselNav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
 .carouselBtn {
+  flex-shrink: 0;
+  align-self: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
   border: 1px solid var(--background-offset-color);
   background: var(--background-color);
@@ -199,28 +198,3 @@
   }
 }
 
-.carouselDots {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.carouselDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: none;
-  background: var(--background-offset-color);
-  cursor: pointer;
-  padding: 0;
-  transition: background-color 0.15s ease, transform 0.15s ease;
-
-  &:hover {
-    background: rgba(var(--gray-color-rgb), 0.6);
-  }
-}
-
-.carouselDotActive {
-  background: var(--primary-color);
-  transform: scale(1.2);
-}

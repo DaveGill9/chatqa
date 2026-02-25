@@ -134,8 +134,17 @@ export default function ResultDetailPage() {
   return (
     <Page>
       <Page.Header
-        title={stripFileExtension(meta?.name ?? meta?.filename ?? 'Result')}
-        subtitle={meta ? format(new Date(meta.createdAt), 'h:mma d MMM yyyy') : undefined}
+        title="Results"
+        subtitle={
+          meta
+            ? [
+                stripFileExtension(meta.testSetFilename || meta.testSetName || ''),
+                format(new Date(meta.createdAt), 'h:mma d MMM yyyy'),
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            : undefined
+        }
       >
         <IconButton icon="arrow_back" onClick={() => navigate('/')} aria-label="Back to dashboard" />
         {meta && (
@@ -153,20 +162,19 @@ export default function ResultDetailPage() {
         {loading && <Feedback type="loading" />}
         {!loading && meta && rows && rows.length === 0 && <Feedback type="empty">No rows found</Feedback>}
         {!loading && meta && rows && rows.length > 0 && (
-          <ResultCarousel rows={rows} testSetName={stripFileExtension(meta.testSetFilename || meta.testSetName || '')} />
+          <ResultCarousel rows={rows} />
         )}
       </Page.Content>
     </Page>
   );
 }
 
-function ResultCarousel({ rows, testSetName }: { rows: TestRow[]; testSetName: string }) {
+function ResultCarousel({ rows }: { rows: TestRow[] }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ align: 'start', containScroll: 'trimSnaps' });
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
-  const scrollTo = useCallback((index: number) => emblaApi?.scrollTo(index), [emblaApi]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -187,13 +195,16 @@ function ResultCarousel({ rows, testSetName }: { rows: TestRow[]; testSetName: s
 
   return (
     <div className={styles.content}>
-      {testSetName && (
-        <div className={styles.meta}>
-          <span className={styles.muted}>Test set</span>
-          <div className={styles.metaValue}>{testSetName || '—'}</div>
-        </div>
-      )}
       <div className={styles.carouselWrap}>
+        <button
+          type="button"
+          className={styles.carouselBtn}
+          onClick={scrollPrev}
+          disabled={selectedIndex === 0}
+          aria-label="Previous"
+        >
+          ‹
+        </button>
         <div className={styles.embla} ref={emblaRef}>
           <div className={styles.emblaContainer}>
             {rows.map((row, index) => (
@@ -232,26 +243,15 @@ function ResultCarousel({ rows, testSetName }: { rows: TestRow[]; testSetName: s
             ))}
           </div>
         </div>
-        <div className={styles.carouselNav}>
-          <button type="button" className={styles.carouselBtn} onClick={scrollPrev} disabled={selectedIndex === 0} aria-label="Previous">
-            ‹
-          </button>
-          <div className={styles.carouselDots} role="tablist">
-            {rows.map((_, index) => (
-              <button
-                key={index}
-                type="button"
-                role="tab"
-                aria-selected={index === selectedIndex}
-                className={[styles.carouselDot, index === selectedIndex ? styles.carouselDotActive : ''].join(' ')}
-                onClick={() => scrollTo(index)}
-              />
-            ))}
-          </div>
-          <button type="button" className={styles.carouselBtn} onClick={scrollNext} disabled={selectedIndex === rows.length - 1} aria-label="Next">
-            ›
-          </button>
-        </div>
+        <button
+          type="button"
+          className={styles.carouselBtn}
+          onClick={scrollNext}
+          disabled={selectedIndex === rows.length - 1}
+          aria-label="Next"
+        >
+          ›
+        </button>
       </div>
     </div>
   );
