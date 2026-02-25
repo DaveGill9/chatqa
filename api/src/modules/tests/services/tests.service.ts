@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import type { Express } from 'express';
@@ -12,9 +18,16 @@ import type { TestRow } from '../types/test.types';
 import { ParserService } from './parser.service';
 import { BotClientService } from './bot-client.service';
 import { ScoreService } from './score.service';
+import { FollowupService } from './followup.service';
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 @Injectable()
 export class TestsService {
+  private readonly logger = new Logger(TestsService.name);
+
   constructor(
     @InjectModel(TestSet.name) private readonly testSetModel: Model<TestSet>,
     @InjectModel(TestCase.name) private readonly testCaseModel: Model<TestCase>,
@@ -25,6 +38,8 @@ export class TestsService {
     private readonly parserService: ParserService,
     private readonly botClientService: BotClientService,
     private readonly scoreService: ScoreService,
+    private readonly followupService: FollowupService,
+    private readonly configService: ConfigService,
   ) {}
 
   async uploadTestSet(file: Express.Multer.File, meta: { name?: string; project?: string }) {
@@ -161,13 +176,104 @@ export class TestsService {
       additionalContext?: Record<string, unknown>;
     }> = [];
 
+    const maxFollowupTurns = Math.max(
+      1,
+      parseInt(
+        String(this.configService.get('CHATBOT_MAX_FOLLOWUP_TURNS') ?? '2'),
+        10,
+      ),
+    );
+    const delayMs = parseInt(
+      String(this.configService.get('CHATBOT_DELAY_MS') ?? '5000'),
+      10,
+    );
+    const rawSeparator =
+      this.configService.get<string>('CHATBOT_RESPONSE_SEPARATOR', '\n---\n') ??
+      '\n---\n';
+    const responseSeparator = rawSeparator
+      .replace(/\\n/g, '\n')
+      .replace(/\\t/g, '\t');
+
     try {
       for (const testCase of cases) {
         const row = this.toTestRow(testCase);
+        this.logger.debug(`[run ${run._id}] Case ${testCase.id}: calling chatbot`);
         try {
-          const chat = await this.botClientService.callEndpoint(row);
-          const actual = chat.answer;
+          let chat = await this.botClientService.callEndpoint(row);
+          const responses: string[] = [chat.answer];
+          let threadId = chat.threadId;
+
+          this.logger.debug(
+            `[run ${run._id}] Case ${testCase.id}: initial response length=${chat.answer?.length ?? 0}, threadId=${threadId ?? 'none'}`,
+          );
+
+          await delay(delayMs);
+
+          let previousAnswer = chat.answer;
+          const followupHistory: string[] = [];
+
+          for (let turn = 1; turn <= maxFollowupTurns; turn++) {
+            if (!chat.answer || chat.answer.trim().length < 10) {
+              this.logger.debug(
+                `[run ${run._id}] Case ${testCase.id}: response too short, skipping follow-ups`,
+              );
+              break;
+            }
+
+            const decision = await this.followupService.decideFollowup({
+              input: row.input,
+              expected: row.expected,
+              latestReply: chat.answer,
+              previousFollowups: followupHistory,
+            });
+
+            this.logger.debug(
+              `[run ${run._id}] Case ${testCase.id}: follow-up ${turn} decision needsFollowup=${decision.needsFollowup}, reason=${decision.reason?.slice(0, 50) ?? ''}`,
+            );
+
+            if (!decision.needsFollowup || !decision.followupMessage) {
+              break;
+            }
+
+            this.logger.debug(
+              `[run ${run._id}] Case ${testCase.id}: sending follow-up ${turn}: "${decision.followupMessage.substring(0, 50)}..."`,
+            );
+
+            responses.push(`[Follow-up ${turn}]: ${decision.followupMessage}`);
+            followupHistory.push(decision.followupMessage);
+
+            const extras = this.botClientService.getExtras(row);
+            chat = await this.botClientService.sendFollowup(
+              decision.followupMessage,
+              threadId,
+              extras,
+            );
+            responses.push(chat.answer);
+            if (chat.threadId) {
+              threadId = chat.threadId;
+            }
+
+            this.logger.debug(
+              `[run ${run._id}] Case ${testCase.id}: follow-up ${turn} response length=${chat.answer?.length ?? 0}`,
+            );
+
+            await delay(delayMs);
+
+            if (chat.answer === previousAnswer) {
+              this.logger.debug(
+                `[run ${run._id}] Case ${testCase.id}: same response, stopping follow-ups`,
+              );
+              break;
+            }
+            previousAnswer = chat.answer;
+          }
+
+          const actual = responses.join(responseSeparator);
           const score = await this.scoreService.score(row.input, row.expected, actual);
+
+          this.logger.debug(
+            `[run ${run._id}] Case ${testCase.id}: score=${score.score}, responseCount=${responses.length}`,
+          );
 
           await this.resultModel.create({
             testRunId: run._id,
@@ -243,12 +349,11 @@ export class TestsService {
         resultSizeBytesXlsx = undefined;
       }
 
-      // Persist result sets + cases (stored similarly to test sets + cases)
+      // Persist result set + cases (stored similarly to test sets + cases)
       const rowsFromCases = resultCasesBase.map((c) => this.resultCaseToRow(c));
       const xlsxRowsBuffer = this.buildRowsFile(rowsFromCases, 'xlsx');
-      const csvRowsBuffer = this.buildRowsFile(rowsFromCases, 'csv');
 
-      const resultSetDocs = await this.resultSetModel.create([
+      const [resultSetDoc] = await this.resultSetModel.create([
         {
           testRunId: String(run._id),
           testSetId: String(set._id),
@@ -260,35 +365,12 @@ export class TestsService {
           testSetName: set.name,
           testSetFilename: set.filename,
         },
-        {
-          testRunId: String(run._id),
-          testSetId: String(set._id),
-          name: `Results - ${set.name}`,
-          filename: `test-run-${String(run._id)}-results.csv`,
-          format: 'csv',
-          sizeBytes: csvRowsBuffer.length,
-          testCaseCount: rowCount,
-          testSetName: set.name,
-          testSetFilename: set.filename,
-        },
       ]);
 
-      const xlsxSet = resultSetDocs.find((d) => d.format === 'xlsx');
-      const csvSet = resultSetDocs.find((d) => d.format === 'csv');
-
-      if (xlsxSet) {
-        await this.resultCaseModel.insertMany(
-          resultCasesBase.map((base) => ({ ...base, resultSetId: String(xlsxSet._id) })),
-          { ordered: false },
-        );
-      }
-
-      if (csvSet) {
-        await this.resultCaseModel.insertMany(
-          resultCasesBase.map((base) => ({ ...base, resultSetId: String(csvSet._id) })),
-          { ordered: false },
-        );
-      }
+      await this.resultCaseModel.insertMany(
+        resultCasesBase.map((base) => ({ ...base, resultSetId: String(resultSetDoc._id) })),
+        { ordered: false },
+      );
 
       await this.testRunModel.updateOne(
         { _id: run._id },

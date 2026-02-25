@@ -9,6 +9,7 @@ import { ResultCase, ResultCaseSchema } from './entities/result-case.entity';
 import { ParserService } from './services/parser.service';
 import { BotClientService } from './services/bot-client.service';
 import { ScoreService } from './services/score.service';
+import { FollowupService } from './services/followup.service';
 import { TestsService } from './services/tests.service';
 import { TestsController } from './controllers/tests.controller';
 
@@ -24,7 +25,20 @@ import { TestsController } from './controllers/tests.controller';
     ]),
   ],
   controllers: [TestsController],
-  providers: [ParserService, BotClientService, ScoreService, TestsService],
-  exports: [MongooseModule, ParserService, BotClientService, ScoreService, TestsService],
+  providers: [
+    ParserService,
+    BotClientService,
+    ScoreService,
+    FollowupService,
+    TestsService,
+  ],
+  exports: [
+    MongooseModule,
+    ParserService,
+    BotClientService,
+    ScoreService,
+    FollowupService,
+    TestsService,
+  ],
 })
 export class TestsModule {}
