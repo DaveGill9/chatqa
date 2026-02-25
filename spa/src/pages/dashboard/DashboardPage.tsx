@@ -72,6 +72,7 @@ export default function DashboardPage() {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [editingSetId, setEditingSetId] = useState<string | null>(null);
 
   const [appliedKeywords, setAppliedKeywords] = useState('');
   const testSetsUrl = addSearchParams('/tests/sets', appliedKeywords ? { keywords: appliedKeywords } : {});
@@ -171,6 +172,29 @@ export default function DashboardPage() {
 
   const handleViewResult = (resultSetId: string) => {
     navigate(`/results/${resultSetId}`);
+  };
+
+  const handleRename = async (testSetId: string, newName: string, currentName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === stripFileExtension(currentName)) {
+      setEditingSetId(null);
+      return;
+    }
+    try {
+      const response = await apiClient.patch(`/tests/sets/${testSetId}`, { name: trimmed });
+      const updated = response.data as { name: string };
+      setTestSetsData((prev) => {
+        if (!prev) return prev;
+        return prev.map((s) =>
+          s._id === testSetId ? { ...s, name: updated.name } : s,
+        );
+      });
+      toast.success('Test set renamed');
+    } catch (error) {
+      toast.error(error);
+    } finally {
+      setEditingSetId(null);
+    }
   };
 
   const handleSearch = () => {
@@ -302,7 +326,40 @@ export default function DashboardPage() {
                         <Icon name={isExpanded ? 'expand_less' : 'expand_more'} />
                       </button>
                       <div className={styles.titleCell}>
-                        <strong>{stripFileExtension(testSet.name)}</strong>
+                        {editingSetId === testSet._id ? (
+                          <input
+                            type="text"
+                            className={styles.titleInput}
+                            defaultValue={stripFileExtension(testSet.name)}
+                            autoFocus
+                            onBlur={(e) => handleRename(testSet._id, e.target.value, testSet.name)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.currentTarget.blur();
+                              }
+                              if (e.key === 'Escape') {
+                                setEditingSetId(null);
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            className={styles.titleButton}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingSetId(testSet._id);
+                            }}
+                          >
+                            <strong>{stripFileExtension(testSet.name)}</strong>
+                            <span className={styles.titlePen} aria-hidden>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                              </svg>
+                            </span>
+                          </button>
+                        )}
                       </div>
                       <div className={styles.countCell}>{testSet.testCaseCount ?? 0}</div>
                       <div className={styles.dateCell}>{format(new Date(testSet.createdAt), 'h:mma d MMM yyyy')}</div>

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import type { Express, Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Public } from 'src/modules/users/decorators/public.decorator';
@@ -43,6 +43,14 @@ export class TestsController {
   @Get('sets/:testSetId')
   async getTestSet(@Param('testSetId') testSetId: string) {
     return this.testsService.getTestSet(testSetId);
+  }
+
+  @Patch('sets/:testSetId')
+  async updateTestSet(
+    @Param('testSetId') testSetId: string,
+    @Body() body: { name?: string },
+  ) {
+    return this.testsService.updateTestSetName(testSetId, body.name ?? '');
   }
 
   @Post('sets/:testSetId/run')

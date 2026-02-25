@@ -121,6 +121,20 @@ export class TestsService {
     }));
   }
 
+  async updateTestSetName(testSetId: string, name: string): Promise<{ name: string }> {
+    const set = await this.testSetModel.findById(testSetId).exec();
+    if (!set) {
+      throw new NotFoundException('Test set not found');
+    }
+    const trimmed = String(name ?? '').trim();
+    if (!trimmed) {
+      throw new BadRequestException('Name cannot be empty');
+    }
+    set.name = trimmed;
+    await set.save();
+    return { name: set.name };
+  }
+
   async getTestSet(testSetId: string) {
     const set = await this.testSetModel.findById(testSetId).lean();
     if (!set) {
