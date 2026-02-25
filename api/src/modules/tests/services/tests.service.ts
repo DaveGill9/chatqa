@@ -19,6 +19,7 @@ import { ParserService } from './parser.service';
 import { BotClientService } from './bot-client.service';
 import { ScoreService } from './score.service';
 import { FollowupService } from './followup.service';
+import { ConvertService } from './convert.service';
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -39,6 +40,7 @@ export class TestsService {
     private readonly botClientService: BotClientService,
     private readonly scoreService: ScoreService,
     private readonly followupService: FollowupService,
+    private readonly convertService: ConvertService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -61,6 +63,56 @@ export class TestsService {
         input: String(input),
         expected: String(expected),
         additionalContext: extras,
+      };
+    });
+
+    if (cases.length > 0) {
+      await this.testCaseModel.insertMany(cases);
+    }
+
+    return {
+      testSetId: createdSet._id,
+      name: createdSet.name,
+      filename: createdSet.filename,
+      sizeBytes: createdSet.sizeBytes ?? null,
+      project: createdSet.project ?? null,
+      testCaseCount: cases.length,
+    };
+  }
+
+  async convertAndUpload(
+    file: Express.Multer.File,
+    meta: { name?: string; project?: string; prompt?: string },
+  ) {
+    const rawRows = this.parserService.parseRawBuffer(file.buffer, file.originalname);
+    if (rawRows.length === 0) {
+      throw new BadRequestException('File has no rows');
+    }
+
+    const rows = await this.convertService.convertToTestFormat(
+      rawRows,
+      meta.prompt?.trim() || undefined,
+    );
+
+    const baseName = (file.originalname || 'converted').replace(/\.[^.]+$/, '');
+    const setName = meta.name?.trim() || `${baseName}-converted`;
+    const convertedFilename = `${baseName}-converted.csv`;
+
+    const createdSet = await this.testSetModel.create({
+      name: setName,
+      filename: convertedFilename,
+      sizeBytes: null,
+      project: meta.project?.trim() || undefined,
+    });
+
+    const cases = rows.map((row: TestRow, index) => {
+      const { id, input, expected, actual, score, reasoning, ...extras } = row;
+      return {
+        testSetId: String(createdSet._id),
+        id: String(id || index + 1),
+        input: String(input),
+        expected: String(expected),
+        additionalContext: Object.keys(extras).length ? extras : undefined,
       };
     });
 

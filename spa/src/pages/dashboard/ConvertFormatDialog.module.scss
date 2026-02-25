@@ -1,0 +1,74 @@
+.dialog {
+  width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.1em;
+
+  i {
+    color: var(--primary-color);
+    font-size: 24px;
+  }
+
+  h2 {
+    margin: 0;
+    font: inherit;
+  }
+}
+
+.description {
+  margin: 0;
+  font-size: 0.95em;
+  color: var(--gray-color);
+  line-height: 1.5;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 0.9em;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--gray-color);
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.promptInput {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}

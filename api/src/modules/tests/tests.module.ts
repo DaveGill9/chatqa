@@ -10,6 +10,7 @@ import { ParserService } from './services/parser.service';
 import { BotClientService } from './services/bot-client.service';
 import { ScoreService } from './services/score.service';
 import { FollowupService } from './services/followup.service';
+import { ConvertService } from './services/convert.service';
 import { TestsService } from './services/tests.service';
 import { TestsController } from './controllers/tests.controller';
 
@@ -30,6 +31,7 @@ import { TestsController } from './controllers/tests.controller';
     BotClientService,
     ScoreService,
     FollowupService,
+    ConvertService,
     TestsService,
   ],
   exports: [

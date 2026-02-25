@@ -10,6 +10,7 @@ import Page from '../../components/layout/Page';
 import AnimatedDetailLayout from '../../components/layout/AnimatedDetailLayout';
 import Input from '../../components/input/Input';
 import Button from '../../components/button/Button';
+import ConvertFormatDialog from './ConvertFormatDialog';
 import { addSearchParams } from '../../utils';
 import apiClient from '../../services/api-client';
 import { toast } from '../../services/toast-service';
@@ -30,6 +31,7 @@ type TestCase = {
   id: string;
   input: string;
   expected: string;
+  additionalContext?: Record<string, unknown>;
 };
 
 type TestSetDetail = TestSet & {
@@ -67,6 +69,7 @@ export default function DashboardPage() {
 
   const [keywords, setKeywords] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [convertDialogVisible, setConvertDialogVisible] = useState(false);
   const [expandedSetId, setExpandedSetId] = useState<string | null>(null);
   const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -250,6 +253,22 @@ export default function DashboardPage() {
     file.click();
   };
 
+  const handleConverted = (created: { testSetId: string; name: string; filename?: string; testCaseCount: number }) => {
+    setTestSetsData((prev) => {
+      const next = prev ? [...prev] : [];
+      next.unshift({
+        _id: created.testSetId,
+        name: created.name,
+        filename: created.filename ?? `${created.name}.csv`,
+        sizeBytes: null,
+        project: null,
+        createdAt: new Date().toISOString(),
+        testCaseCount: created.testCaseCount ?? 0,
+      });
+      return next;
+    });
+  };
+
   return (
     <Page>
       <Page.Header
@@ -278,6 +297,9 @@ export default function DashboardPage() {
                   className={styles.searchInput}
                 />
               </div>
+              <Button type="button" className={styles.uploadButton} onClick={() => setConvertDialogVisible(true)} disabled={uploading}>
+                <Icon name="swap_horiz" /> Convert format
+              </Button>
               <Button type="button" className={styles.uploadButton} onClick={selectFiles} disabled={uploading}>
                 <Icon name="upload" /> {uploading ? 'Uploading…' : 'Upload Test Set'}
               </Button>
@@ -419,6 +441,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          <ConvertFormatDialog
+            visible={convertDialogVisible}
+            onClose={() => setConvertDialogVisible(false)}
+            onConverted={handleConverted}
+          />
           <AnimatePresence>
             {previewVisible && selectedSetId && (
               <AnimatedDetailLayout
@@ -466,17 +493,26 @@ function TestSetPreview({ testSetId, onClose }: TestSetPreviewProps) {
         {!loading && data && (
           <>
             {data.cases?.length === 0 && <Feedback type="empty">No test rows found</Feedback>}
-            {(data.cases ?? []).map((testCase) => (
-              <article className={styles.caseCard} key={testCase._id}>
-                <h3>{testCase.id}</h3>
-                <p>
-                  <b>Input:</b> {testCase.input}
-                </p>
-                <p>
-                  <b>Expected:</b> {testCase.expected}
-                </p>
-              </article>
-            ))}
+            {(data.cases ?? []).map((testCase) => {
+              const extras = testCase.additionalContext ?? {};
+              const extraEntries = Object.entries(extras).filter(([, v]) => v != null && v !== '');
+              return (
+                <article className={styles.caseCard} key={testCase._id}>
+                  <h3>{testCase.id}</h3>
+                  <p>
+                    <b>Input:</b> {testCase.input}
+                  </p>
+                  <p>
+                    <b>Expected:</b> {testCase.expected}
+                  </p>
+                  {extraEntries.length > 0 && extraEntries.map(([key, val]) => (
+                    <p key={key}>
+                      <b>{key}:</b> {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                    </p>
+                  ))}
+                </article>
+              );
+            })}
           </>
         )}
       </div>

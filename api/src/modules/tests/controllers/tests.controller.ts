@@ -27,6 +27,28 @@ export class TestsController {
     return this.testsService.uploadTestSet(file, body);
   }
 
+  @Post('convert')
+  @UseInterceptors(FileInterceptor('file'))
+  async convertAndUpload(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { name?: string; project?: string; prompt?: string },
+  ) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+
+    const fileExtension = (file.originalname.split('.').pop() || '').trim().toLowerCase();
+    if (!['csv', 'xlsx', 'xls'].includes(fileExtension)) {
+      throw new BadRequestException('Only CSV and Excel files are supported');
+    }
+
+    return this.testsService.convertAndUpload(file, {
+      name: body.name,
+      project: body.project,
+      prompt: body.prompt,
+    });
+  }
+
   @Get('sets')
   async listTestSets(
     @Query('keywords') keywords?: string,
