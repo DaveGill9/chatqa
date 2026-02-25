@@ -138,6 +138,11 @@ export class TestsController {
     return this.testsService.getResultSet(resultSetId);
   }
 
+  @Get('results/sets/:resultSetId/evaluation')
+  async getResultSetEvaluation(@Param('resultSetId') resultSetId: string) {
+    return this.testsService.getResultSetEvaluation(resultSetId);
+  }
+
   @Get('results/sets/:resultSetId/download')
   async downloadResultSet(
     @Param('resultSetId') resultSetId: string,

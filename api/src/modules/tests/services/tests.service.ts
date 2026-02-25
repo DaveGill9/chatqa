@@ -20,6 +20,7 @@ import { BotClientService } from './bot-client.service';
 import { ScoreService } from './score.service';
 import { FollowupService } from './followup.service';
 import { ConvertService } from './convert.service';
+import { EvaluateService } from './evaluate.service';
 import { JobsService } from '../../jobs/jobs.service';
 
 function delay(ms: number): Promise<void> {
@@ -42,6 +43,7 @@ export class TestsService {
     private readonly scoreService: ScoreService,
     private readonly followupService: FollowupService,
     private readonly convertService: ConvertService,
+    private readonly evaluateService: EvaluateService,
     private readonly configService: ConfigService,
     private readonly jobsService: JobsService,
   ) {}
@@ -531,6 +533,12 @@ export class TestsService {
         { ordered: false },
       );
 
+      void this.evaluateService
+        .evaluateResultSet(String(resultSetDoc._id), rowsFromCases)
+        .catch((err) =>
+          this.logger.warn(`Evaluation failed for result set ${resultSetDoc._id}:`, err),
+        );
+
       await this.testRunModel.updateOne(
         { _id: runId },
         { status: 'completed', completedAt: new Date(), rowCount, resultSizeBytesXlsx },
@@ -717,6 +725,14 @@ export class TestsService {
       .skip(offset)
       .limit(limit)
       .lean();
+  }
+
+  async getResultSetEvaluation(resultSetId: string) {
+    const set = await this.resultSetModel.findById(resultSetId).lean();
+    if (!set) {
+      throw new NotFoundException('Result set not found');
+    }
+    return this.evaluateService.getEvaluation(resultSetId);
   }
 
   async getResultSet(resultSetId: string) {

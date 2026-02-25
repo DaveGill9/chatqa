@@ -9,6 +9,8 @@ import Page from '../../components/layout/Page';
 import Button from '../../components/button/Button';
 import Feedback from '../../components/feedback/Feedback';
 import IconButton from '../../components/icon/IconButton';
+import Popover from '../../components/popover/Popover';
+import Modal from '../../components/popover/Modal';
 import apiClient from '../../services/api-client';
 import { toast } from '../../services/toast-service';
 import styles from './ResultDetailPage.module.scss';
@@ -32,6 +34,14 @@ type ResultSetMeta = {
   createdAt: string;
 };
 
+type Evaluation = {
+  summary?: string;
+  whatWentWell?: string[];
+  whatWentWrong?: string[];
+  patterns?: string[];
+  suggestions?: string[];
+};
+
 const stripFileExtension = (str: string) => {
   if (!str || typeof str !== 'string') return str;
   const lastDot = str.lastIndexOf('.');
@@ -44,6 +54,10 @@ export default function ResultDetailPage() {
   const [meta, setMeta] = useState<ResultSetMeta | null>(null);
   const [rows, setRows] = useState<TestRow[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const [evaluateModalOpen, setEvaluateModalOpen] = useState(false);
+  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
+  const [evaluationLoading, setEvaluationLoading] = useState(false);
 
   useEffect(() => {
     if (!resultSetId) {
@@ -98,6 +112,20 @@ export default function ResultDetailPage() {
     };
   }, [resultSetId]);
 
+  const fetchEvaluation = async (id: string) => {
+    setEvaluationLoading(true);
+    setEvaluation(null);
+    try {
+      const res = await apiClient.get(`/tests/results/sets/${id}/evaluation`);
+      const data = res.data as Evaluation | null;
+      setEvaluation(data);
+    } catch (error) {
+      toast.error(error);
+    } finally {
+      setEvaluationLoading(false);
+    }
+  };
+
   const downloadResultSet = async (id: string, formatType: 'csv' | 'xlsx') => {
     try {
       const response = await apiClient.get(`/tests/results/sets/${id}/download`, {
@@ -149,15 +177,127 @@ export default function ResultDetailPage() {
         <IconButton icon="arrow_back" onClick={() => navigate('/')} aria-label="Back to dashboard" />
         {meta && (
           <div className={styles.headerActions}>
-            <Button type="button" className={styles.downloadBtn} onClick={() => void downloadResultSet(meta._id, 'xlsx')}>
-              Download XLSX
+            <Button
+              type="button"
+              variant="border"
+              className={styles.evaluateBtn}
+              onClick={() => {
+                setEvaluateModalOpen(true);
+                void fetchEvaluation(meta._id);
+              }}
+            >
+              Evaluate
             </Button>
-            <Button type="button" variant="border" className={styles.downloadBtn} onClick={() => void downloadResultSet(meta._id, 'csv')}>
-              Download CSV
-            </Button>
+            <Popover
+              menu={
+                <ul className={styles.downloadMenu}>
+                  <li>
+                    <button
+                      type="button"
+                      className={styles.menuItem}
+                      onClick={() => {
+                        void downloadResultSet(meta._id, 'csv');
+                        setDownloadMenuOpen(false);
+                      }}
+                    >
+                      Download as CSV
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      className={styles.menuItem}
+                      onClick={() => {
+                        void downloadResultSet(meta._id, 'xlsx');
+                        setDownloadMenuOpen(false);
+                      }}
+                    >
+                      Download as XLSX
+                    </button>
+                  </li>
+                </ul>
+              }
+              visible={downloadMenuOpen}
+              setVisible={setDownloadMenuOpen}
+              position="bottom"
+              anchor="right"
+              className={styles.downloadPopover}
+            >
+              <Button type="button" className={styles.downloadBtn} variant="border">
+                Download ▾
+              </Button>
+            </Popover>
           </div>
         )}
       </Page.Header>
+      <Modal visible={evaluateModalOpen} onClose={() => setEvaluateModalOpen(false)}>
+        <div className={styles.evalDialog}>
+          {(evaluationLoading || !evaluation) && (
+            <div className={styles.evalSkeleton} aria-busy="true" aria-label="Loading evaluation">
+              <div className={styles.skeletonTitle} />
+              <div className={styles.skeletonLine} style={{ width: '95%' }} />
+              <div className={styles.skeletonLine} style={{ width: '88%' }} />
+              <div className={styles.skeletonLine} style={{ width: '70%' }} />
+              <div className={styles.skeletonSection} />
+              <div className={styles.skeletonLine} style={{ width: '90%' }} />
+              <div className={styles.skeletonLine} style={{ width: '75%' }} />
+              <div className={styles.skeletonSection} />
+              <div className={styles.skeletonLine} style={{ width: '85%' }} />
+              <div className={styles.skeletonLine} style={{ width: '60%' }} />
+            </div>
+          )}
+          {!evaluationLoading && evaluation && (
+            <div className={styles.evalContent}>
+              {evaluation.summary && (
+                <section className={styles.evalSection}>
+                  <h3>Summary</h3>
+                  <p>{evaluation.summary}</p>
+                </section>
+              )}
+              {evaluation.whatWentWell && evaluation.whatWentWell.length > 0 && (
+                <section className={styles.evalSection}>
+                  <h3>What went well</h3>
+                  <ul>
+                    {evaluation.whatWentWell.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {evaluation.whatWentWrong && evaluation.whatWentWrong.length > 0 && (
+                <section className={styles.evalSection}>
+                  <h3>What went wrong</h3>
+                  <ul>
+                    {evaluation.whatWentWrong.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {evaluation.patterns && evaluation.patterns.length > 0 && (
+                <section className={styles.evalSection}>
+                  <h3>Consistent patterns</h3>
+                  <ul>
+                    {evaluation.patterns.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {evaluation.suggestions && evaluation.suggestions.length > 0 && (
+                <section className={styles.evalSection}>
+                  <h3>Suggestions</h3>
+                  <ul>
+                    {evaluation.suggestions.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </div>
+          )}
+        </div>
+      </Modal>
       <Page.Content>
         {loading && <Feedback type="loading" />}
         {!loading && meta && rows && rows.length === 0 && <Feedback type="empty">No rows found</Feedback>}
