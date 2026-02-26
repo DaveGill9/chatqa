@@ -44,9 +44,9 @@ type TestSetDetail = TestSet & {
 
 type ResultSet = {
   _id: string;
-  testRunId: string;
   testSetId: string;
   name: string;
+  status?: string;
   createdAt: string;
   filename: string;
   format: 'csv' | 'xlsx';
@@ -86,7 +86,7 @@ export default function DashboardPage() {
   const testSetsUrl = addSearchParams('/tests/sets', appliedKeywords ? { keywords: appliedKeywords } : {});
   const { data: testSetsData, setData: setTestSetsData, loading: testSetsLoading, reset: resetTestSets } = usePagedRequest<TestSet>(testSetsUrl, { limit: 200 });
 
-  const { data: resultSetsData, loading: resultSetsLoading, reset: resetResultSets } = usePagedRequest<ResultSet>('/tests/results/sets', { limit: 500 });
+  const { data: resultSetsData, loading: resultSetsLoading, reset: resetResultSets } = usePagedRequest<ResultSet>('/results/sets', { limit: 500 });
   const { jobs } = useJobs();
   const processedRunIds = useRef<Set<string>>(new Set());
   const processedConvertIds = useRef<Set<string>>(new Set());
@@ -187,7 +187,7 @@ export default function DashboardPage() {
       const response = await apiClient.post(`/tests/sets/${testSetId}/run`);
       const result = response.data as {
         jobId: string;
-        testRunId: string;
+        resultSetId: string;
         testSetId: string;
         status: string;
         total: number;
@@ -306,12 +306,6 @@ export default function DashboardPage() {
       <Page.Content>
         <div className={styles.layout}>
           <div className={styles.list}>
-            {uploading && <Feedback type="loading">Uploading test file...</Feedback>}
-            {(testSetsLoading || resultSetsLoading) && !uploading && <Feedback type="loading" />}
-            {!testSetsLoading && !resultSetsLoading && testSetsData?.length === 0 && (
-              <Feedback type="empty">No test sets found. Upload one to get started.</Feedback>
-            )}
-
             <div className={styles.controlsBar}>
               <div className={styles.searchWrap}>
                 <Icon name="search" />
@@ -333,6 +327,12 @@ export default function DashboardPage() {
                 </Button>
               </div>
             </div>
+
+            {uploading && <Feedback type="loading">Uploading test file...</Feedback>}
+            {(testSetsLoading || resultSetsLoading) && !uploading && <Feedback type="loading" />}
+            {!testSetsLoading && !resultSetsLoading && testSetsData?.length === 0 && (
+              <Feedback type="empty">No test sets found. Upload one to get started.</Feedback>
+            )}
 
             <div className={styles.listCard}>
               {!!sortedTestSets.length && (
@@ -502,7 +502,7 @@ export default function DashboardPage() {
                                     onClick={() => handleViewResult(run._id)}
                                   >
                                     <span className={styles.runIcon}><Icon name="description" /></span>
-                                    <span className={styles.runId}>{run.testRunId}</span>
+                                    <span className={styles.runId}>{String(run._id).slice(0, 8)}</span>
                                     <span className={styles.runDate}>{format(new Date(run.createdAt), 'h:mma d MMM yyyy')}</span>
                                   </button>
                                 ))

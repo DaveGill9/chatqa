@@ -10,10 +10,19 @@ export type ResultSetDocument = HydratedDocument<ResultSet>;
 })
 export class ResultSet extends BaseEntity {
   @Prop({ required: true, index: true })
-  testRunId: string;
-
-  @Prop({ required: true, index: true })
   testSetId: string;
+
+  @Prop({ required: true, enum: ['pending', 'running', 'completed', 'failed'], default: 'pending' })
+  status: string;
+
+  @Prop()
+  completedAt?: Date;
+
+  @Prop()
+  rowCount?: number;
+
+  @Prop()
+  resultSizeBytesXlsx?: number;
 
   @Prop({ required: true, trim: true })
   name: string;
@@ -41,5 +50,3 @@ export const ResultSetSchema = SchemaFactory.createForClass(ResultSet);
 
 ResultSetSchema.index({ createdAt: -1 });
 ResultSetSchema.index({ testSetId: 1, createdAt: -1 });
-ResultSetSchema.index({ testRunId: 1, format: 1 }, { unique: true });
-

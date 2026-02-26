@@ -13,9 +13,6 @@ export class ResultCase extends BaseEntity {
   resultSetId: string;
 
   @Prop({ required: true, index: true })
-  testRunId: string;
-
-  @Prop({ required: true, index: true })
   testSetId: string;
 
   @Prop({ required: true, index: true })
@@ -46,5 +43,3 @@ export class ResultCase extends BaseEntity {
 export const ResultCaseSchema = SchemaFactory.createForClass(ResultCase);
 
 ResultCaseSchema.index({ resultSetId: 1, id: 1 }, { unique: true });
-ResultCaseSchema.index({ testRunId: 1, testCaseId: 1 });
-

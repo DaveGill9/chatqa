@@ -8,6 +8,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { getAppVersion } from './utils/get-app-version';
 import { HealthModule } from './modules/health/health.module';
 import { JobsModule } from './modules/jobs/jobs.module';
+import { ParseModule } from './modules/parse/parse.module';
+import { ResultsModule } from './modules/results/results.module';
 import { TestsModule } from './modules/tests/tests.module';
 import { HttpExceptionFilter } from './modules/event-logs/filters/http-exception.filter';
 import { EventLogsModule } from './modules/event-logs/event-logs.module';
@@ -58,6 +60,8 @@ import { AuthGuard } from './modules/users/guards/auth.guard';
     // Modules
     HealthModule,
     JobsModule,
+    ParseModule,
+    ResultsModule,
     TestsModule,
     EventLogsModule,
     UsersModule,

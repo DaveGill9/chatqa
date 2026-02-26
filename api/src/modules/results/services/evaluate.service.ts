@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import OpenAI from 'openai';
-import type { TestRow } from '../types/test.types';
+import type { TestRow } from 'src/types/row.types';
 import { ResultSetEvaluation } from '../entities/result-set-evaluation.entity';
 
 export type EvaluationResult = {

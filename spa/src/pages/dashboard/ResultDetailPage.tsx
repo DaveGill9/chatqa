@@ -70,7 +70,7 @@ export default function ResultDetailPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await apiClient.get(`/tests/results/sets/${resultSetId}`);
+        const response = await apiClient.get(`/results/sets/${resultSetId}`);
         const resData = response.data as {
           _id?: string;
           name?: string;
@@ -116,7 +116,7 @@ export default function ResultDetailPage() {
     setEvaluationLoading(true);
     setEvaluation(null);
     try {
-      const res = await apiClient.get(`/tests/results/sets/${id}/evaluation`);
+      const res = await apiClient.get(`/results/sets/${id}/evaluation`);
       const data = res.data as Evaluation | null;
       setEvaluation(data);
     } catch (error) {
@@ -128,7 +128,7 @@ export default function ResultDetailPage() {
 
   const downloadResultSet = async (id: string, formatType: 'csv' | 'xlsx') => {
     try {
-      const response = await apiClient.get(`/tests/results/sets/${id}/download`, {
+      const response = await apiClient.get(`/results/sets/${id}/download`, {
         params: { format: formatType },
         responseType: 'blob',
       });

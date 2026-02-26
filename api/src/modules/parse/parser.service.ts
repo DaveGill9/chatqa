@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import type { RawRow, TestRow } from '../types/test.types';
+import type { RawRow, TestRow } from 'src/types/row.types';
 
 @Injectable()
 export class ParserService {
@@ -15,9 +15,10 @@ export class ParserService {
 
   parseTestRowsBuffer(buffer: Buffer, filename: string): TestRow[] {
     const ext = this.getExt(filename);
-    const rows = ext === 'xlsx' || ext === 'xls'
-      ? this.parseXlsxRaw(buffer) as TestRow[]
-      : this.parseCsvRaw(buffer) as TestRow[];
+    const rows =
+      ext === 'xlsx' || ext === 'xls'
+        ? (this.parseXlsxRaw(buffer) as TestRow[])
+        : (this.parseCsvRaw(buffer) as TestRow[]);
     this.validateRequiredFields(rows);
     return rows;
   }

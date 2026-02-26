@@ -14,7 +14,7 @@ export interface Job {
   meta?: {
     testSetId?: string;
     testSetName?: string;
-    testRunId?: string;
+    resultSetId?: string;
     filename?: string;
     current?: number;
     total?: number;
