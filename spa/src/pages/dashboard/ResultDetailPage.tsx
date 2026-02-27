@@ -338,8 +338,17 @@ function ResultCarousel({ rows }: { rows: TestRow[] }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ align: 'start', containScroll: 'trimSnaps' });
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
-  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+  const scrollTo = useCallback((index: number) => emblaApi?.scrollTo(index), [emblaApi]);
+
+  const scrollToSection = useCallback((index: number, section: 'expected' | 'actual' | 'reasoning') => {
+    scrollTo(index);
+    const id = `section-${index}-${section}`;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }, [scrollTo]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -361,15 +370,57 @@ function ResultCarousel({ rows }: { rows: TestRow[] }) {
   return (
     <div className={styles.content}>
       <div className={styles.carouselWrap}>
-        <button
-          type="button"
-          className={styles.carouselBtn}
-          onClick={scrollPrev}
-          disabled={selectedIndex === 0}
-          aria-label="Previous"
-        >
-          ‹
-        </button>
+        <aside className={styles.tocBox}>
+          <span className={styles.tocTitle}>Table of contents</span>
+          <nav className={styles.tocNav} aria-label="Case navigation">
+            {rows.map((row, index) => (
+              <div key={`${row.id}-${index}`} className={styles.tocCaseWrap}>
+                <button
+                  type="button"
+                  className={selectedIndex === index ? styles.tocItemActive : styles.tocItem}
+                  onClick={() => scrollTo(index)}
+                  aria-current={selectedIndex === index ? 'true' : undefined}
+                  aria-expanded={selectedIndex === index}
+                >
+                  Case {row.id}
+                </button>
+                <div
+                  className={`${styles.tocSublistWrap} ${selectedIndex === index ? styles.tocSublistExpanded : ''}`}
+                >
+                  <ul className={styles.tocSublist}>
+                    <li>
+                      <button
+                        type="button"
+                        className={styles.tocSubitem}
+                        onClick={() => scrollToSection(index, 'expected')}
+                      >
+                        Expected
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        className={styles.tocSubitem}
+                        onClick={() => scrollToSection(index, 'actual')}
+                      >
+                        Actual
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        className={styles.tocSubitem}
+                        onClick={() => scrollToSection(index, 'reasoning')}
+                      >
+                        Reasoning
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </nav>
+        </aside>
         <div className={styles.embla} ref={emblaRef}>
           <div className={styles.emblaContainer}>
             {rows.map((row, index) => (
@@ -380,13 +431,13 @@ function ResultCarousel({ rows }: { rows: TestRow[] }) {
                     <span className={styles.caseScore}>{typeof row.score === 'number' ? row.score.toFixed(2) : '—'}</span>
                   </div>
                   <div className={styles.caseCardBody}>
-                    <div className={styles.caseCardSection}>
+                    <div id={`section-${index}-expected`} className={styles.caseCardSection}>
                       <span className={styles.caseLabel}>Expected</span>
                       <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
                         <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.expected || '—'}</ReactMarkdown>
                       </div>
                     </div>
-                    <div className={styles.chatThread}>
+                    <div id={`section-${index}-actual`} className={styles.chatThread}>
                       {parseChatTurns(row.input, row.actual ?? '').map((turn, i) => (
                         <div
                           key={i}
@@ -403,7 +454,7 @@ function ResultCarousel({ rows }: { rows: TestRow[] }) {
                         </div>
                       ))}
                     </div>
-                    <div className={styles.referenceSection}>
+                    <div id={`section-${index}-reasoning`} className={styles.referenceSection}>
                       <div className={styles.caseCardSection}>
                         <span className={styles.caseLabel}>Reasoning</span>
                         <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
@@ -417,15 +468,6 @@ function ResultCarousel({ rows }: { rows: TestRow[] }) {
             ))}
           </div>
         </div>
-        <button
-          type="button"
-          className={styles.carouselBtn}
-          onClick={scrollNext}
-          disabled={selectedIndex === rows.length - 1}
-          aria-label="Next"
-        >
-          ›
-        </button>
       </div>
     </div>
   );

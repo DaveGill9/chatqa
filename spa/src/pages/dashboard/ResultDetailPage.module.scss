@@ -136,7 +136,7 @@
   flex: 1;
   height: 100%;
   overflow: hidden;
-  padding: 24px 48px;
+  padding: 24px 20px;
   line-height: 1.5;
 }
 
@@ -377,12 +377,137 @@
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  gap: 16px;
+  gap: 20px;
   margin: 8px auto 0;
   min-height: 0;
   flex: 1;
-  max-width: 900px;
+  max-width: 960px;
   width: 100%;
+}
+
+.tocBox {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  padding: 16px;
+  background: rgba(var(--background-offset-color-rgb), 0.25);
+}
+
+.tocTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-color);
+  margin-bottom: 12px;
+}
+
+.tocNav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.tocCaseWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.tocSublistWrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+
+  &.tocSublistExpanded {
+    grid-template-rows: 1fr;
+  }
+}
+
+.tocSublist {
+  list-style: none;
+  margin: 0;
+  padding: 4px 12px 8px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  min-height: 0;
+
+  li {
+    padding: 2px 0;
+  }
+}
+
+.tocSubitem {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--gray-color);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+
+  &::before {
+    content: '·';
+    margin-right: 6px;
+    color: var(--gray-color);
+    font-weight: 700;
+  }
+
+  &:hover {
+    color: var(--primary-color);
+    background: rgba(var(--background-offset-color-rgb), 0.4);
+
+    &::before {
+      color: var(--primary-color);
+    }
+  }
+}
+
+.tocItem,
+.tocItemActive {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-color);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &::before {
+    content: '·';
+    margin-right: 8px;
+    flex-shrink: 0;
+    color: var(--gray-color);
+    font-weight: 700;
+  }
+
+  &:hover {
+    background: rgba(var(--background-offset-color-rgb), 0.35);
+  }
+}
+
+.tocItemActive {
+  color: var(--primary-color);
+
+  &::before {
+    color: var(--primary-color);
+  }
 }
 
 .embla {
