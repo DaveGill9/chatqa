@@ -581,7 +581,7 @@ All environment variables are loaded via `ConfigService` from `.env` file locate
 
 ### Optional Variables
 
-- `PORT` - Server port (default: `3000`)
+- `PORT` - Server port (default: `3080`)
 - `APP_VERSION` - Application version (auto-populated from `package.json` if not set)
 - `SEARCH_INDEX_NAME` - Azure Cognitive Search index name (default: `'nodes_index'`)
 
@@ -622,7 +622,7 @@ SHAREPOINT_TENANT_ID=your-tenant-id
 SHAREPOINT_LIBRARY_URL=https://tenant.sharepoint.com/sites/SiteName/Shared Documents
 
 # Optional
-PORT=3000
+PORT=3080
 ```
 
 ---
@@ -649,7 +649,7 @@ npm install
 npm run start:dev
 ```
 
-Starts the application in watch mode with hot reload. The API will be available at `http://localhost:3000` (or the port specified in `PORT` env variable).
+Starts the application in watch mode with hot reload. The API will be available at `http://localhost:3080` (or the port specified in `PORT` env variable).
 
 ### Debug Mode
 

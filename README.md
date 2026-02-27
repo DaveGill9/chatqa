@@ -302,20 +302,20 @@ See [Environment Variables](#environment-variables) section for required variabl
 cd api
 npm run start:dev
 ```
-API will be available at `http://localhost:3000`
+API will be available at `http://localhost:3080`
 
 **Terminal 2 - SPA Server:**
 ```bash
 cd spa
 npm run dev
 ```
-SPA will be available at `http://localhost:5173`
+SPA will be available at `http://localhost:5174`
 
 ### 5. Access the Application
 
-- **Frontend**: http://localhost:5173
-- **API**: http://localhost:3000
-- **API Health Check**: http://localhost:3000/healthz
+- **Frontend**: http://localhost:5174
+- **API**: http://localhost:3080
+- **API Health Check**: http://localhost:3080/healthz
 
 ## 🔐 Environment Variables
 
@@ -372,7 +372,7 @@ EMAIL_DEFAULT_SENDER=DoNotReply@yourdomain.com
 # ============================================
 # Frontend (SPA) Variables
 # ============================================
-VITE_API_URL=http://localhost:3002
+VITE_API_URL=http://localhost:3080
 VITE_MSAL_CLIENT_ID=your-azure-ad-app-client-id
 VITE_MSAL_TENANT_ID=your-azure-ad-tenant-id
 ```
@@ -380,8 +380,8 @@ VITE_MSAL_TENANT_ID=your-azure-ad-tenant-id
 ### Optional Variables
 
 ```env
-# API Port (default: 3002)
-PORT=3002
+# API Port (default: 3080 - uncommon port to avoid conflicts with other projects)
+PORT=3080
 
 # Node Environment
 NODE_ENV=development

@@ -48,6 +48,31 @@ const stripFileExtension = (str: string) => {
   return lastDot > 0 ? str.slice(0, lastDot) : str;
 };
 
+/** Split actual into chat turns. Follow-ups are prefixed with [Follow-up N]: */
+const RESPONSE_SEPARATOR = '\n---\n';
+const FOLLOWUP_REGEX = /^\[Follow-up \d+\]:\s*/;
+
+function parseChatTurns(input: string, actual: string): Array<{ role: 'user' | 'assistant'; content: string }> {
+  const turns: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  if (!input?.trim() && !actual?.trim()) return turns;
+
+  turns.push({ role: 'user', content: (input || '').trim() || '—' });
+
+  if (!actual?.trim()) return turns;
+
+  const chunks = actual.split(RESPONSE_SEPARATOR).map((s) => s.trim()).filter(Boolean);
+  for (const chunk of chunks) {
+    const followupMatch = chunk.match(FOLLOWUP_REGEX);
+    if (followupMatch) {
+      const userMessage = chunk.replace(FOLLOWUP_REGEX, '').trim();
+      if (userMessage) turns.push({ role: 'user', content: userMessage });
+    } else {
+      turns.push({ role: 'assistant', content: chunk });
+    }
+  }
+  return turns;
+}
+
 export default function ResultDetailPage() {
   const { resultSetId } = useParams<{ resultSetId: string }>();
   const navigate = useNavigate();
@@ -355,28 +380,38 @@ function ResultCarousel({ rows }: { rows: TestRow[] }) {
                     <span className={styles.caseScore}>{typeof row.score === 'number' ? row.score.toFixed(2) : '—'}</span>
                   </div>
                   <div className={styles.caseCardBody}>
-                    <div className={styles.caseCardSection}>
-                      <span className={styles.caseLabel}>Input</span>
-                      <div className={styles.caseValue}>{row.input || '—'}</div>
+                    <div className={styles.chatThread}>
+                      {parseChatTurns(row.input, row.actual ?? '').map((turn, i) => (
+                        <div
+                          key={i}
+                          className={turn.role === 'user' ? styles.chatBubbleUser : styles.chatBubbleAssistant}
+                        >
+                          <span className={styles.chatRole}>{turn.role === 'user' ? 'You' : 'Assistant'}</span>
+                          <div className={[styles.chatContent, styles.caseValueMarkdown].join(' ')}>
+                            {turn.role === 'assistant' ? (
+                              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{turn.content}</ReactMarkdown>
+                            ) : (
+                              <>{turn.content}</>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className={styles.caseCardSection}>
-                      <span className={styles.caseLabel}>Expected</span>
-                      <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.expected || '—'}</ReactMarkdown>
+                    <details className={styles.referenceSection}>
+                      <summary>Expected &amp; reasoning</summary>
+                      <div className={styles.caseCardSection}>
+                        <span className={styles.caseLabel}>Expected</span>
+                        <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.expected || '—'}</ReactMarkdown>
+                        </div>
                       </div>
-                    </div>
-                    <div className={styles.caseCardSection}>
-                      <span className={styles.caseLabel}>Actual</span>
-                      <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.actual || '—'}</ReactMarkdown>
+                      <div className={styles.caseCardSection}>
+                        <span className={styles.caseLabel}>Reasoning</span>
+                        <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.reasoning || '—'}</ReactMarkdown>
+                        </div>
                       </div>
-                    </div>
-                    <div className={styles.caseCardSection}>
-                      <span className={styles.caseLabel}>Reasoning</span>
-                      <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.reasoning || '—'}</ReactMarkdown>
-                      </div>
-                    </div>
+                    </details>
                   </div>
                 </div>
               </div>

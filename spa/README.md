@@ -225,7 +225,7 @@ spa/
    
    Create a `.env` file in the project root (or use the one in the parent directory):
    ```env
-   VITE_API_URL=http://localhost:3002
+   VITE_API_URL=http://localhost:3080
    VITE_MSAL_CLIENT_ID=your-azure-ad-app-client-id
    VITE_MSAL_TENANT_ID=your-azure-ad-tenant-id
    ```
