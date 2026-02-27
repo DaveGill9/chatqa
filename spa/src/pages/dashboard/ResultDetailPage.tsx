@@ -380,6 +380,12 @@ function ResultCarousel({ rows }: { rows: TestRow[] }) {
                     <span className={styles.caseScore}>{typeof row.score === 'number' ? row.score.toFixed(2) : '—'}</span>
                   </div>
                   <div className={styles.caseCardBody}>
+                    <div className={styles.caseCardSection}>
+                      <span className={styles.caseLabel}>Expected</span>
+                      <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.expected || '—'}</ReactMarkdown>
+                      </div>
+                    </div>
                     <div className={styles.chatThread}>
                       {parseChatTurns(row.input, row.actual ?? '').map((turn, i) => (
                         <div
@@ -397,21 +403,14 @@ function ResultCarousel({ rows }: { rows: TestRow[] }) {
                         </div>
                       ))}
                     </div>
-                    <details className={styles.referenceSection}>
-                      <summary>Expected &amp; reasoning</summary>
-                      <div className={styles.caseCardSection}>
-                        <span className={styles.caseLabel}>Expected</span>
-                        <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
-                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.expected || '—'}</ReactMarkdown>
-                        </div>
-                      </div>
+                    <div className={styles.referenceSection}>
                       <div className={styles.caseCardSection}>
                         <span className={styles.caseLabel}>Reasoning</span>
                         <div className={[styles.caseValue, styles.caseValueMarkdown].join(' ')}>
                           <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{row.reasoning || '—'}</ReactMarkdown>
                         </div>
                       </div>
-                    </details>
+                    </div>
                   </div>
                 </div>
               </div>
