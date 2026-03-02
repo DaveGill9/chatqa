@@ -17,11 +17,11 @@ function App() {
   if (disableAuth) {
     return (
       <div className={styles.app}>
-        <Navigation className={styles.navigation} />
+        <Navigation className={styles.navigation} data-no-print />
         <main className={styles.main}>
           <AnimatedOutlet />
         </main>
-        <aside className={styles.aside} id="popover-container" />
+        <aside className={styles.aside} id="popover-container" data-no-print />
       </div>
     );
   }
@@ -36,11 +36,11 @@ function App() {
 
   return (
     <div className={styles.app}>
-      <Navigation className={styles.navigation} />
+      <Navigation className={styles.navigation} data-no-print />
       <main className={styles.main}>
         <AnimatedOutlet />
       </main>
-      <aside className={styles.aside} id="popover-container" />
+      <aside className={styles.aside} id="popover-container" data-no-print />
     </div>
   );
 }

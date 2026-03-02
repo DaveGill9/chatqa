@@ -187,6 +187,7 @@ export default function ResultDetailPage() {
   return (
     <Page>
       <Page.Header
+        data-no-print
         title="Results"
         subtitle={
           meta
@@ -238,6 +239,18 @@ export default function ResultDetailPage() {
                       }}
                     >
                       Download as XLSX
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      className={styles.menuItem}
+                      onClick={() => {
+                        window.print();
+                        setDownloadMenuOpen(false);
+                      }}
+                    >
+                      Download as PDF
                     </button>
                   </li>
                 </ul>
@@ -370,7 +383,7 @@ function ResultCarousel({ rows }: { rows: TestRow[] }) {
   return (
     <div className={styles.content}>
       <div className={styles.carouselWrap}>
-        <aside className={styles.tocBox}>
+        <aside className={styles.tocBox} data-no-print>
           <span className={styles.tocTitle}>Table of contents</span>
           <nav className={styles.tocNav} aria-label="Case navigation">
             {rows.map((row, index) => (

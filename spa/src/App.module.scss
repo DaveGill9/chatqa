@@ -22,3 +22,17 @@
     }
 }
 
+@media print {
+    .app {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .main {
+        overflow: visible !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+}
+

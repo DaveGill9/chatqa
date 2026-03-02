@@ -60,3 +60,16 @@
     overflow-x: hidden;
     overflow-y: auto;
 }
+
+@media print {
+    .page {
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    .content {
+        overflow: visible !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+}

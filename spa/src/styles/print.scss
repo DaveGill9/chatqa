@@ -1,0 +1,15 @@
+@media print {
+  /* Hide everything marked as non-printable (nav, header, TOC, aside) */
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* Ensure main content uses full width, no overflow */
+  body,
+  html,
+  #root,
+  #root > div {
+    overflow: visible !important;
+    height: auto !important;
+  }
+}
