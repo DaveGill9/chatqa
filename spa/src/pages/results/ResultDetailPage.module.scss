@@ -140,24 +140,6 @@
   line-height: 1.5;
 }
 
-.muted {
-  color: var(--gray-color);
-}
-
-.metaValue {
-  font-weight: 700;
-  margin-top: 4px;
-  word-break: break-word;
-}
-
-.meta {
-  margin-bottom: 16px;
-
-  .muted {
-    font-size: 0.85em;
-  }
-}
-
 .caseCard {
   display: flex;
   flex-direction: column;
@@ -245,18 +227,6 @@
   margin-top: 8px;
   padding-top: 12px;
   border-top: 1px solid var(--background-offset-color);
-
-  summary {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--gray-color);
-    cursor: pointer;
-    user-select: none;
-
-    &:hover {
-      color: var(--text-color);
-    }
-  }
 }
 
 .caseId {
@@ -535,35 +505,7 @@
   flex-direction: column;
 }
 
-.carouselBtn {
-  flex-shrink: 0;
-  align-self: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  border: 1px solid var(--background-offset-color);
-  background: var(--background-color);
-  color: var(--text-color);
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-
-  &:hover:not(:disabled) {
-    background: rgba(var(--background-offset-color-rgb), 0.35);
-    border-color: rgba(var(--primary-color-rgb), 0.35);
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-}
-
 @media print {
-  /* Only the result cards should print - strip all surrounding layout */
   .content {
     overflow: visible !important;
     padding: 0 !important;
@@ -611,4 +553,3 @@
     box-shadow: none;
   }
 }
-

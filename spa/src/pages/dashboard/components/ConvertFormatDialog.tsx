@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
-import Modal from '../../components/popover/Modal';
-import Button from '../../components/button/Button';
-import Icon from '../../components/icon/Icon';
-import Textarea from '../../components/input/Textarea';
-import apiClient from '../../services/api-client';
-import { toast } from '../../services/toast-service';
+import Modal from '../../../components/popover/Modal';
+import Button from '../../../components/button/Button';
+import Icon from '../../../components/icon/Icon';
+import Textarea from '../../../components/input/Textarea';
+import apiClient from '../../../services/api-client';
+import { toast } from '../../../services/toast-service';
 import styles from './ConvertFormatDialog.module.scss';
 
 interface ConvertFormatDialogProps {
@@ -56,9 +56,12 @@ export default function ConvertFormatDialog({
       toast.success('Conversion started. Watch the Jobs panel for progress.');
       handleClose();
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'response' in err
-        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
-        : err instanceof Error ? err.message : String(err);
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : err instanceof Error
+            ? err.message
+            : String(err);
       toast.error(msg || 'Conversion failed');
     } finally {
       setConverting(false);
@@ -78,7 +81,8 @@ export default function ConvertFormatDialog({
           <h2>Convert Format</h2>
         </div>
         <p className={styles.description}>
-          Upload a file with any columns. AI converts it to: <strong>id</strong>, <strong>input</strong>, <strong>expected</strong>.
+          Upload a file with any columns. AI converts it to: <strong>id</strong>, <strong>input</strong>,{' '}
+          <strong>expected</strong>.
         </p>
 
         <div className={styles.field}>

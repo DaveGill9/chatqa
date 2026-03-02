@@ -1,69 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { format } from 'date-fns';
 import usePagedRequest from '../../hooks/usePagedRequest';
-import useFetchRequest from '../../hooks/useFetchRequest';
-import Feedback from '../../components/feedback/Feedback';
-import Icon from '../../components/icon/Icon';
 import Page from '../../components/layout/Page';
 import AnimatedDetailLayout from '../../components/layout/AnimatedDetailLayout';
-import Input from '../../components/input/Input';
-import Button from '../../components/button/Button';
-import ConvertFormatDialog from './ConvertFormatDialog';
 import Alert from '../../components/popover/Alert';
-import Popover from '../../components/popover/Popover';
 import { addSearchParams } from '../../utils';
 import apiClient from '../../services/api-client';
 import { toast } from '../../services/toast-service';
 import { useJobs } from '../../context/JobsContext';
+import { stripFileExtension } from '../../utils';
+import type { SortKey, SortDirection, TestSet, ResultSet } from './types';
+import { ConvertFormatDialog, TestSetList, TestSetPreview } from './components';
 import styles from './DashboardPage.module.scss';
-
-type TestSet = {
-  _id: string;
-  name: string;
-  filename: string;
-  sizeBytes?: number | null;
-  project?: string | null;
-  createdAt: string;
-  testCaseCount?: number;
-};
-
-type TestCase = {
-  _id: string;
-  id: string;
-  input: string;
-  expected: string;
-  additionalContext?: Record<string, unknown>;
-};
-
-type TestSetDetail = TestSet & {
-  testCaseCount: number;
-  cases: TestCase[];
-};
-
-type ResultSet = {
-  _id: string;
-  testSetId: string;
-  name: string;
-  status?: string;
-  createdAt: string;
-  filename: string;
-  format: 'csv' | 'xlsx';
-  sizeBytes?: number | null;
-  testCaseCount?: number;
-  testSetName?: string | null;
-  testSetFilename?: string | null;
-};
-
-type SortKey = 'createdAt' | 'name' | 'testCaseCount';
-type SortDirection = 'asc' | 'desc';
-
-const stripFileExtension = (str: string) => {
-  if (!str || typeof str !== 'string') return str;
-  const lastDot = str.lastIndexOf('.');
-  return lastDot > 0 ? str.slice(0, lastDot) : str;
-};
 
 export default function DashboardPage() {
   const [searchParams] = useSearchParams();
@@ -84,9 +33,11 @@ export default function DashboardPage() {
 
   const [appliedKeywords, setAppliedKeywords] = useState('');
   const testSetsUrl = addSearchParams('/tests/sets', appliedKeywords ? { keywords: appliedKeywords } : {});
-  const { data: testSetsData, setData: setTestSetsData, loading: testSetsLoading, reset: resetTestSets } = usePagedRequest<TestSet>(testSetsUrl, { limit: 200 });
+  const { data: testSetsData, setData: setTestSetsData, loading: testSetsLoading, reset: resetTestSets } =
+    usePagedRequest<TestSet>(testSetsUrl, { limit: 200 });
 
-  const { data: resultSetsData, loading: resultSetsLoading, reset: resetResultSets } = usePagedRequest<ResultSet>('/results/sets', { limit: 500 });
+  const { data: resultSetsData, loading: resultSetsLoading, reset: resetResultSets } =
+    usePagedRequest<ResultSet>('/results/sets', { limit: 500 });
   const { jobs } = useJobs();
   const processedRunIds = useRef<Set<string>>(new Set());
   const processedConvertIds = useRef<Set<string>>(new Set());
@@ -168,15 +119,6 @@ export default function DashboardPage() {
     setSortDirection(nextKey === 'createdAt' ? 'desc' : 'asc');
   };
 
-  const sortIndicator = (key: SortKey) => {
-    if (key !== sortKey) return null;
-    return <span className={styles.sortIndicator}>{sortDirection === 'asc' ? '▲' : '▼'}</span>;
-  };
-
-  const toggleExpand = (testSetId: string) => {
-    setExpandedSetId((prev) => (prev === testSetId ? null : testSetId));
-  };
-
   const handlePreview = (testSetId: string) => {
     setSelectedSetId(testSetId);
     setPreviewVisible(true);
@@ -185,13 +127,7 @@ export default function DashboardPage() {
   const handleRun = async (testSetId: string) => {
     try {
       const response = await apiClient.post(`/tests/sets/${testSetId}/run`);
-      const result = response.data as {
-        jobId: string;
-        resultSetId: string;
-        testSetId: string;
-        status: string;
-        total: number;
-      };
+      const result = response.data as { jobId: string; resultSetId: string; testSetId: string; status: string; total: number };
       toast.success(`Run started (${result.total} cases). Watch the Jobs panel for progress.`);
       setExpandedSetId(testSetId);
     } catch (error) {
@@ -231,9 +167,7 @@ export default function DashboardPage() {
       const updated = response.data as { name: string };
       setTestSetsData((prev) => {
         if (!prev) return prev;
-        return prev.map((s) =>
-          s._id === testSetId ? { ...s, name: updated.name } : s,
-        );
+        return prev.map((s) => (s._id === testSetId ? { ...s, name: updated.name } : s));
       });
       toast.success('Test set renamed');
     } catch (error) {
@@ -243,8 +177,18 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSearch = () => {
-    setAppliedKeywords(keywords.trim());
+  const selectFiles = () => {
+    const file = document.createElement('input');
+    file.type = 'file';
+    file.multiple = false;
+    file.accept = '.csv,.xlsx,.xls';
+    file.onchange = (event) => {
+      const selected = (event.target as HTMLInputElement).files;
+      if (selected && selected.length > 0) {
+        void uploadFile(selected[0]);
+      }
+    };
+    file.click();
   };
 
   const uploadFile = async (file: File) => {
@@ -282,20 +226,6 @@ export default function DashboardPage() {
     }
   };
 
-  const selectFiles = () => {
-    const file = document.createElement('input');
-    file.type = 'file';
-    file.multiple = false;
-    file.accept = '.csv,.xlsx,.xls';
-    file.onchange = (event) => {
-      const selected = (event.target as HTMLInputElement).files;
-      if (selected && selected.length > 0) {
-        void uploadFile(selected[0]);
-      }
-    };
-    file.click();
-  };
-
   return (
     <Page>
       <Page.Header
@@ -305,239 +235,51 @@ export default function DashboardPage() {
 
       <Page.Content>
         <div className={styles.layout}>
-          <div className={styles.list}>
-            <div className={styles.controlsBar}>
-              <div className={styles.searchWrap}>
-                <Icon name="search" />
-                <Input
-                  type="search"
-                  placeholder="Search test sets"
-                  value={keywords}
-                  onTextChange={setKeywords}
-                  onEnter={handleSearch}
-                  className={styles.searchInput}
-                />
-              </div>
-              <div className={styles.buttonGroup}>
-                <Button type="button" className={styles.uploadButton} onClick={() => setConvertDialogVisible(true)} disabled={uploading}>
-                  <Icon name="swap_horiz" /> Convert format
-                </Button>
-                <Button type="button" className={styles.uploadButton} onClick={selectFiles} disabled={uploading}>
-                  <Icon name="upload" /> {uploading ? 'Uploading…' : 'Upload Test Set'}
-                </Button>
-              </div>
-            </div>
-
-            {uploading && <Feedback type="loading">Uploading test file...</Feedback>}
-            {(testSetsLoading || resultSetsLoading) && !uploading && <Feedback type="loading" />}
-            {!testSetsLoading && !resultSetsLoading && testSetsData?.length === 0 && (
-              <Feedback type="empty">No test sets found. Upload one to get started.</Feedback>
-            )}
-
-            <div className={styles.listCard}>
-              {!!sortedTestSets.length && (
-                <div className={styles.listHeader} role="row">
-                  <span className={styles.headerSpacer} />
-                  <button type="button" className={[styles.headerButton, styles.headerTitle].join(' ')} onClick={() => toggleSort('name')} aria-label="Sort by title">
-                    Title {sortIndicator('name')}
-                  </button>
-                  <button type="button" className={[styles.headerButton, styles.countCell].join(' ')} onClick={() => toggleSort('testCaseCount')} aria-label="Sort by tests">
-                    Tests {sortIndicator('testCaseCount')}
-                  </button>
-                  <span className={styles.headerStatus} aria-hidden>Status</span>
-                  <button type="button" className={[styles.headerButton, styles.dateCell].join(' ')} onClick={() => toggleSort('createdAt')} aria-label="Sort by date">
-                    Added {sortIndicator('createdAt')}
-                  </button>
-                  <span className={styles.headerActions} aria-hidden>Actions</span>
-                </div>
-              )}
-
-              {sortedTestSets.map((testSet) => {
-                const runs = runsByTestSet.get(testSet._id) ?? [];
-                const isExpanded = expandedSetId === testSet._id;
-                return (
-                  <div key={testSet._id} className={styles.testSetRow}>
-                    <div
-                      className={styles.testSetMain}
-                      onClick={() => toggleExpand(testSet._id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && toggleExpand(testSet._id)}
-                      aria-expanded={isExpanded}
-                    >
-                      <button
-                        type="button"
-                        className={styles.expandBtn}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleExpand(testSet._id);
-                        }}
-                        aria-label={isExpanded ? 'Collapse' : 'Expand runs'}
-                      >
-                        <Icon name={isExpanded ? 'expand_less' : 'expand_more'} />
-                      </button>
-                      <div className={styles.titleCell}>
-                        {editingSetId === testSet._id ? (
-                          <input
-                            type="text"
-                            className={styles.titleInput}
-                            defaultValue={stripFileExtension(testSet.name)}
-                            autoFocus
-                            onBlur={(e) => handleRename(testSet._id, e.target.value, testSet.name)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.currentTarget.blur();
-                              }
-                              if (e.key === 'Escape') {
-                                setEditingSetId(null);
-                              }
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        ) : (
-                          <strong>{stripFileExtension(testSet.name)}</strong>
-                        )}
-                      </div>
-                      <div className={styles.countCell}>{testSet.testCaseCount ?? 0}</div>
-                      <div className={styles.statusCell}>
-                        {runs.length === 0 ? 'No runs' : `${runs.length} run${runs.length === 1 ? '' : 's'}`}
-                      </div>
-                      <div className={styles.dateCell}>{format(new Date(testSet.createdAt), 'h:mma d MMM yyyy')}</div>
-                      <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
-                        <Popover
-                          menu={
-                            <ul className={styles.actionsMenu}>
-                              <li>
-                                <button
-                                  type="button"
-                                  className={styles.menuItem}
-                                  onClick={() => {
-                                    setEditingSetId(testSet._id);
-                                    setOpenMenuSetId(null);
-                                  }}
-                                >
-                                  <Icon name="edit" /> Rename
-                                </button>
-                              </li>
-                              <li>
-                                <button
-                                  type="button"
-                                  className={styles.menuItem}
-                                  onClick={() => {
-                                    handlePreview(testSet._id);
-                                    setOpenMenuSetId(null);
-                                  }}
-                                >
-                                  <Icon name="visibility" /> Preview
-                                </button>
-                              </li>
-                              <li>
-                                <button
-                                  type="button"
-                                  className={styles.menuItem}
-                                  onClick={() => {
-                                    void handleRun(testSet._id);
-                                    setOpenMenuSetId(null);
-                                  }}
-                                >
-                                  <Icon name="play_arrow" /> Run
-                                </button>
-                              </li>
-                              <li>
-                                <button
-                                  type="button"
-                                  className={`${styles.menuItem} ${styles.menuItemDanger}`}
-                                  onClick={() => {
-                                    setDeleteConfirmSetId(testSet._id);
-                                    setOpenMenuSetId(null);
-                                  }}
-                                >
-                                  <Icon name="delete" /> Delete
-                                </button>
-                              </li>
-                            </ul>
-                          }
-                          visible={openMenuSetId === testSet._id}
-                          setVisible={(v) => setOpenMenuSetId(v ? testSet._id : null)}
-                          position="bottom"
-                          anchor="right"
-                          className={styles.actionsPopover}
-                        >
-                          <button
-                            type="button"
-                            className={styles.menuTrigger}
-                            aria-label={`Actions for ${stripFileExtension(testSet.name)}`}
-                            aria-expanded={openMenuSetId === testSet._id}
-                          >
-                            <Icon name="more_vert" />
-                          </button>
-                        </Popover>
-                      </div>
-                    </div>
-
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                          style={{ overflow: 'hidden' }}
-                        >
-                          <div className={styles.runsBox}>
-                            <div className={styles.runsTable}>
-                              <div className={styles.runsTableHeader}>
-                                <span className={styles.runsTableIcon} />
-                                <span className={styles.runsTableCol}>Run ID</span>
-                                <span className={styles.runsTableCol}>Date run</span>
-                              </div>
-                              {runs.length === 0 ? (
-                                <div className={styles.noRuns}>No runs yet</div>
-                              ) : (
-                                runs.map((run) => (
-                                  <button
-                                    key={run._id}
-                                    type="button"
-                                    className={styles.runItem}
-                                    onClick={() => handleViewResult(run._id)}
-                                  >
-                                    <span className={styles.runIcon}><Icon name="description" /></span>
-                                    <span className={styles.runId}>{String(run._id).slice(0, 8)}</span>
-                                    <span className={styles.runDate}>{format(new Date(run.createdAt), 'h:mma d MMM yyyy')}</span>
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <ConvertFormatDialog
-            visible={convertDialogVisible}
-            onClose={() => setConvertDialogVisible(false)}
+          <TestSetList
+            sortedTestSets={sortedTestSets}
+            runsByTestSet={runsByTestSet}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            expandedSetId={expandedSetId}
+            editingSetId={editingSetId}
+            openMenuSetId={openMenuSetId}
+            keywords={keywords}
+            uploading={uploading}
+            loading={testSetsLoading || resultSetsLoading}
+            onKeywordsChange={setKeywords}
+            onSearch={() => setAppliedKeywords(keywords.trim())}
+            onConvert={() => setConvertDialogVisible(true)}
+            onUpload={selectFiles}
+            onToggleSort={toggleSort}
+            onToggleExpand={(id) => setExpandedSetId((prev) => (prev === id ? null : id))}
+            onEdit={setEditingSetId}
+            onCancelEdit={() => setEditingSetId(null)}
+            onPreview={handlePreview}
+            onRun={handleRun}
+            onRequestDelete={setDeleteConfirmSetId}
+            onRename={handleRename}
+            onViewResult={handleViewResult}
+            onMenuToggle={setOpenMenuSetId}
           />
+
+          <ConvertFormatDialog visible={convertDialogVisible} onClose={() => setConvertDialogVisible(false)} />
+
           <Alert
             title="Delete test set"
             visible={!!deleteConfirmSetId}
             setVisible={(v) => !v && setDeleteConfirmSetId(null)}
             confirmText="Delete"
-            onConfirm={
-              deleteConfirmSetId
-                ? () => handleDelete(deleteConfirmSetId)
-                : undefined
-            }
+            onConfirm={deleteConfirmSetId ? () => handleDelete(deleteConfirmSetId) : undefined}
           >
             <p>
-              Are you sure you want to delete <strong>{stripFileExtension(sortedTestSets.find((s) => s._id === deleteConfirmSetId)?.name ?? 'this test set')}</strong>?
-              This will also remove all test cases, runs, and results.
+              Are you sure you want to delete{' '}
+              <strong>
+                {stripFileExtension(sortedTestSets.find((s) => s._id === deleteConfirmSetId)?.name ?? 'this test set')}
+              </strong>
+              ? This will also remove all test cases, runs, and results.
             </p>
           </Alert>
+
           <AnimatePresence>
             {previewVisible && selectedSetId && (
               <AnimatedDetailLayout
@@ -560,54 +302,5 @@ export default function DashboardPage() {
         </div>
       </Page.Content>
     </Page>
-  );
-}
-
-interface TestSetPreviewProps {
-  testSetId: string | null;
-  onClose: () => void;
-}
-
-function TestSetPreview({ testSetId, onClose }: TestSetPreviewProps) {
-  const { data, loading } = useFetchRequest<TestSetDetail>(testSetId ? `/tests/sets/${testSetId}` : '');
-
-  return (
-    <aside className={styles.preview}>
-      <div className={styles.previewHeader}>
-        <strong>{stripFileExtension(data?.filename || data?.name || '')}</strong>
-        <Button type="button" variant="border" onClick={onClose} aria-label="Close">
-          Close
-        </Button>
-      </div>
-      <div className={styles.previewContent}>
-        {!testSetId && <Feedback type="empty">Select a test file to preview</Feedback>}
-        {loading && testSetId && <Feedback type="loading" />}
-        {!loading && data && (
-          <>
-            {data.cases?.length === 0 && <Feedback type="empty">No test rows found</Feedback>}
-            {(data.cases ?? []).map((testCase) => {
-              const extras = testCase.additionalContext ?? {};
-              const extraEntries = Object.entries(extras).filter(([, v]) => v != null && v !== '');
-              return (
-                <article className={styles.caseCard} key={testCase._id}>
-                  <h3>{testCase.id}</h3>
-                  <p>
-                    <b>Input:</b> {testCase.input}
-                  </p>
-                  <p>
-                    <b>Expected:</b> {testCase.expected}
-                  </p>
-                  {extraEntries.length > 0 && extraEntries.map(([key, val]) => (
-                    <p key={key}>
-                      <b>{key}:</b> {typeof val === 'object' ? JSON.stringify(val) : String(val)}
-                    </p>
-                  ))}
-                </article>
-              );
-            })}
-          </>
-        )}
-      </div>
-    </aside>
   );
 }
