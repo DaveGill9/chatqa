@@ -1,632 +1,278 @@
-# ChatQA 🚀
+# ChatQA
 
-A production-ready, full-stack chat application with AI-powered document processing and retrieval-augmented generation (RAG). Built as a monorepo with NestJS backend, React frontend, and Azure cloud services integration.
+ChatQA is a full-stack QA harness for testing chatbot behavior at scale.
 
-## 📋 Table of Contents
+It lets you upload spreadsheet-based test sets, run them against a chatbot HTTP endpoint, score each response with an LLM, and review the results in a web dashboard. The app is designed for prompt tuning, regression testing, and identifying recurring failure patterns across many conversations.
 
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Environment Variables](#environment-variables)
-- [Development](#development)
-- [Deployment](#deployment)
-- [API Documentation](#api-documentation)
-- [Contributing](#contributing)
-- [Roadmap](#roadmap)
+## What The Project Does
 
-## 🎯 Overview
+ChatQA is built around a simple workflow:
 
-ChatQA is a comprehensive chat application designed to serve as a starting point for building AI-powered conversational interfaces. It combines document processing, vector search, and streaming chat capabilities to deliver a complete RAG (Retrieval-Augmented Generation) solution.
+1. Upload a CSV or Excel file containing chatbot test cases.
+2. Optionally convert an arbitrary spreadsheet into the canonical test format with AI.
+3. Run the test set against a target chatbot endpoint.
+4. Score each actual response against the expected response.
+5. Review run-level summaries, failure patterns, and suggestions for improvement.
 
-### Key Capabilities
+This repository is a monorepo containing:
 
-- **Document Library**: Upload and process documents (PDF, DOCX) with automatic text extraction and indexing
-- **Intelligent Chat**: Chat with AI using grounded knowledge from your document library
-- **Real-time Streaming**: WebSocket-based streaming responses for instant feedback
-- **Advanced Search**: Hybrid search (semantic + vector) powered by Azure AI Search
-- **Custom Markdown Components**: Rich rendering with citations, galleries, diagrams, and more
-- **Comprehensive Logging**: Detailed event logs for debugging and monitoring
-- **User Management**: Role-based access control with Microsoft authentication
+- `api/`: NestJS backend for uploads, test execution, scoring, evaluations, jobs, logs, and auth.
+- `spa/`: React frontend for managing test sets and viewing results.
+- `infra/`: deployment and infrastructure assets.
 
-## ✨ Features
+## Core Features
 
-### Core Features
+- Upload test sets from `.csv`, `.xlsx`, or `.xls`.
+- Accept canonical test rows with required `id`, `input`, and `expected` fields.
+- Preserve extra spreadsheet columns and pass them through to the chatbot endpoint as request context.
+- Convert arbitrary spreadsheets into the canonical test format using OpenAI.
+- Run test sets asynchronously with live job progress via server-sent events.
+- Support follow-up turns when the chatbot asks clarifying questions.
+- Score each result from `0.0` to `1.0` with short reasoning.
+- Generate run-level AI summaries covering what went well, what went wrong, patterns, and suggestions.
+- Browse historical runs and download result sets.
+- View application event logs in the UI.
+- Support Microsoft auth, with optional auth bypass for local development.
 
-- ✅ **Document Upload & Processing**
-  - Support for PDF and DOCX files
-  - Automatic text extraction using Azure Document Intelligence
-  - Figure/image extraction from documents
-  - Queue-based asynchronous processing
-  - Status tracking (pending → processing → completed/failed)
+## How It Works
 
-- ✅ **AI-Powered Chat**
-  - Streaming responses via WebSocket
-  - Context-aware conversations using document library
-  - Message history and persistence
-  - Feedback collection (sentiment analysis)
-  - Tool calling for document retrieval
-
-- ✅ **Vector Search & RAG**
-  - Hybrid search (keyword + semantic)
-  - Automatic embedding generation
-  - Document chunking and indexing
-  - Relevance-based context retrieval
-
-- ✅ **Rich Markdown Rendering**
-  - Citations with document references
-  - Image galleries with lightbox
-  - Mermaid diagram rendering
-  - Document lists with summaries
-  - Custom table styling
-  - Error message display
-
-- ✅ **Real-time Updates**
-  - WebSocket connections for live updates
-  - Document processing status notifications
-  - Chat message streaming
-  - Connection state management
-
-- ✅ **Event Logging**
-  - Comprehensive event logging system
-  - Filterable logs by level, group, and date
-  - Automatic log purging (30-day TTL)
-  - Stack trace capture for errors
-
-- ✅ **Authentication & Authorization**
-  - Microsoft Identity Platform (MSAL) integration
-  - JWT-based authentication
-  - Role-based access control (USER, ADMINISTRATOR)
-  - Secure API endpoints
-
-- ✅ **Progressive Web App (PWA)**
-  - Offline support with service workers
-  - Automatic update notifications
-  - Installable on mobile and desktop
-  - Cached assets for faster loading
-
-## 🏗️ Architecture
-
-### System Architecture
-
-```
-┌─────────────────┐
-│   React SPA      │  ← User Interface (Vite + React + TypeScript)
-│   (Static Web)   │
-└────────┬────────┘
-         │ HTTPS
-         │ WebSocket
-         ▼
-┌─────────────────┐
-│   NestJS API    │  ← REST API + WebSocket Gateway
-│   (App Service) │
-└────────┬────────┘
-         │
-    ┌────┴────┬──────────┬──────────────┬─────────────┐
-    │         │          │              │             │
-    ▼         ▼          ▼              ▼             ▼
-┌────────┐ ┌──────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
-│ MongoDB│ │Azure │ │  Azure   │ │  Azure   │ │  Azure   │
-│        │ │Storage│ │   AI     │ │  Search  │ │ Document │
-│        │ │       │ │  OpenAI  │ │          │ │Intelligence│
-└────────┘ └──────┘ └──────────┘ └──────────┘ └──────────┘
+```text
+Spreadsheet test set
+        |
+        v
+Upload or AI convert to canonical format
+        |
+        v
+API runs each test case against configured chatbot endpoint
+        |
+        v
+OpenAI scores actual vs expected output
+        |
+        v
+Result set + evaluation summary stored in MongoDB
+        |
+        v
+SPA shows test sets, runs, evaluations, logs, and job progress
 ```
 
-### Data Flow
+### Canonical Test Format
 
-1. **Document Upload Flow**:
-   - User uploads document → API creates record → File stored in Azure Blob Storage
-   - Queue service picks up document → Document Intelligence extracts text
-   - Text is chunked and embedded → Chunks indexed in Azure AI Search
-   - Status updated to "completed"
+Each test row must include:
 
-2. **Chat Flow**:
-   - User sends message → WebSocket event emitted
-   - System retrieves relevant context from document library (hybrid search)
-   - OpenAI generates streaming response with citations
-   - Messages saved to MongoDB
-   - Real-time updates sent via WebSocket
+- `id`
+- `input`
+- `expected`
 
-## 🛠️ Tech Stack
+Any additional columns are retained and sent to the chatbot endpoint alongside the input. That makes it possible to include project identifiers, metadata, user profile fields, or other request context in the source spreadsheet.
 
-### Backend (API)
+Example:
 
-- **Framework**: NestJS 11.0.1
-- **Language**: TypeScript 5.7.3
-- **Database**: MongoDB with Mongoose
-- **Real-time**: Socket.IO
-- **Validation**: Zod
-- **Authentication**: JWT + Microsoft Identity Platform
-- **Scheduling**: @nestjs/schedule (CRON jobs)
-- **Rate Limiting**: @nestjs/throttler
-- **Containerization**: Docker
-
-### Frontend (SPA)
-
-- **Framework**: React 19.2.0
-- **Build Tool**: Vite 7.2.2
-- **Language**: TypeScript 5.9.3
-- **Styling**: SCSS Modules
-- **Routing**: React Router 7.9.5
-- **State Management**: React Context + Hooks
-- **Markdown**: react-markdown with custom components
-- **Diagrams**: Mermaid.js
-- **Authentication**: MSAL Browser
-- **PWA**: vite-plugin-pwa
-
-### Cloud Services (Azure)
-
-- **AI Services**:
-  - Azure OpenAI (GPT models, embeddings)
-  - Azure Document Intelligence
-  - Azure AI Search (vector + semantic search)
-
-- **Storage & Compute**:
-  - Azure Blob Storage
-  - Azure App Service (API)
-  - Azure Static Web Apps (SPA)
-  - Azure Container Registry (for Docker images)
-
-- **Communication**:
-  - Azure Communication Services (Email)
-
-### Infrastructure
-
-- **IaC**: Azure Bicep + scripted setup via `infra/setup.js`
-- **CI/CD**: GitHub Actions workflows (configured for API and SPA)
-  - API: Docker-based deployment to Azure App Service
-  - SPA: Static Web Apps deployment
-
-## 📁 Project Structure
-
+```csv
+id,input,expected,project,region
+1,What are your support hours?,Support is available Monday to Friday 9am to 5pm,helpdesk,AU
+2,Reset my password,Instructions for resetting a password,helpdesk,AU
 ```
+
+## Tech Stack
+
+### Backend
+
+- NestJS
+- TypeScript
+- MongoDB with Mongoose
+- OpenAI API for conversion, scoring, and run evaluation
+
+### Frontend
+
+- React
+- Vite
+- TypeScript
+- React Router
+- SCSS modules
+
+### Optional Auth
+
+- Microsoft Identity Platform via MSAL
+
+## Project Structure
+
+```text
 chatqa/
-├── api/                    # NestJS REST API + WebSocket Gateway
-│   ├── src/
-│   │   ├── modules/        # Feature modules
-│   │   │   ├── chats/      # Chat functionality
-│   │   │   ├── documents/   # Document management
-│   │   │   ├── event-logs/ # Logging system
-│   │   │   ├── health/     # Health checks
-│   │   │   ├── socket/     # WebSocket gateway
-│   │   │   ├── users/      # User management & auth
-│   │   │   └── shared/     # Shared services
-│   │   ├── pipes/          # Validation pipes
-│   │   ├── types/          # Shared types
-│   │   ├── utils/          # Utility functions
-│   │   ├── app.module.ts   # Root module
-│   │   └── main.ts         # Application entry
-│   ├── tests/              # Test files
-│   └── package.json
-│
-├── spa/                    # React Single Page Application
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   │   ├── markdown/   # Custom markdown components
-│   │   │   ├── layout/     # Layout components
-│   │   │   └── ...
-│   │   ├── pages/          # Page components
-│   │   │   ├── chat/       # Chat interface
-│   │   │   ├── documents/  # Document library
-│   │   │   └── logs/       # Event logs viewer
-│   │   ├── services/       # API clients & services
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── context/        # React context providers
-│   │   ├── types/          # TypeScript types
-│   │   └── router/         # Route configuration
-│   └── package.json
-│
-├── infra/                  # Infrastructure as Code
-│   ├── main.bicep          # Bicep templates
-│   └── resources/           # Bicep resource modules
-│
-├── .github/
-│   └── workflows/           # GitHub Actions workflows
-│       ├── api-docker.yml   # API deployment workflow
-│       └── static-web-app.yml  # SPA deployment workflow
-│
-└── README.md               # This file
+├── api/                     # NestJS API
+│   ├── src/modules/tests/   # Upload, convert, run test sets
+│   ├── src/modules/results/ # Stored runs and evaluations
+│   ├── src/modules/jobs/    # Background job progress + SSE stream
+│   ├── src/modules/event-logs/
+│   ├── src/modules/users/   # Auth support
+│   └── src/modules/health/
+├── spa/                     # React dashboard
+│   ├── src/pages/dashboard/ # Test sets and run controls
+│   ├── src/pages/results/   # Result details and evaluation summary
+│   └── src/pages/logs/      # Event log viewer
+├── infra/                   # Deployment/infrastructure assets
+└── README.md
 ```
 
-## 📋 Prerequisites
+## Quick Start
 
-### Required Software
+### Prerequisites
 
-- **Node.js**: v18 or higher (v20 recommended)
-- **npm**: v9 or higher (or compatible package manager)
-- **MongoDB**: v6 or higher (local or cloud instance)
-- **Azure CLI**: Latest version (for deployment)
-- **Docker**: Latest version (for API containerization)
-- **GitHub CLI** (`gh`): Required for scripted infrastructure + CI/CD setup (`infra/setup.js`)
+- Node.js 18+
+- npm
+- MongoDB
+- An OpenAI API key
+- A chatbot HTTP endpoint to evaluate
 
-### Required Azure Services
+### Install Dependencies
 
-This project uses the following Azure services. They are provisioned automatically when you run `node infra/setup.js` (recommended). If you are provisioning manually, ensure you have:
-
-1. **AI Search** - Vector and semantic search
-2. **OpenAI** (Azure OpenAI or OpenAI.com) - LLM and embeddings
-3. **MongoDB** - Database (Azure Cosmos DB for MongoDB API or standalone)
-4. **Storage Account** - Blob storage for documents
-5. **Document Intelligence** - Document text extraction
-6. **Email Communication Service** (optional) - For email notifications
-7. **App Registration** - For MSAL authentication
-8. **App Service Plan & Web App** - For REST API hosting
-9. **Static Web App** - For React frontend hosting
-10. **Container Registry** - For Docker image storage (optional, for CI/CD)
-
-> **Note**: Infrastructure + CI/CD is fully automated via `node infra/setup.js` (deploys `infra/main.bicep` and configures GitHub Actions). See `infra/README.md`.
-
-## 🚀 Quick Start
-
-### 1. Clone the Repository
-
-```bash
-git clone <repository-url>
-cd chatqa
-```
-
-### 2. Install Dependencies
-
-Install dependencies for all projects:
-
-```bash
-# Install API dependencies
-cd api
-npm install
-cd ..
-
-# Install SPA dependencies
-cd spa
-npm install
-cd ..
-```
-
-### 3. Configure Environment Variables
-
-Create a `.env` file in the root directory:
-
-```bash
-cp .env.example .env  # If you have an example file
-# Or create .env manually
-```
-
-See [Environment Variables](#environment-variables) section for required variables.
-
-### 4. Start Development Servers
-
-**Terminal 1 - API Server:**
 ```bash
 cd api
-npm run start:dev
+npm install
+
+cd ../spa
+npm install
 ```
-API will be available at `http://localhost:3080`
 
-**Terminal 2 - SPA Server:**
-```bash
-cd spa
-npm run dev
-```
-SPA will be available at `http://localhost:5174`
+### Configure Environment
 
-### 5. Access the Application
+The repo uses a shared root `.env` file. The API reads `../.env`, and the SPA uses the repo root as its `envDir`.
 
-- **Frontend**: http://localhost:5174
-- **API**: http://localhost:3080
-- **API Health Check**: http://localhost:3080/healthz
-
-## 🔐 Environment Variables
-
-All environment variables are stored in a `.env` file at the project root. This file is shared across all projects in the monorepo.
-
-### Required Variables
+Minimal local setup:
 
 ```env
-# ============================================
-# Authentication
-# ============================================
-JWT_SIGNING_SECRET=your-jwt-secret-key-here
-MSAL_AUDIENCE=your-azure-ad-app-client-id
-
-# ============================================
-# Database
-# ============================================
 MONGODB_URI=mongodb://localhost:27017/chatqa
-# Or for Azure Cosmos DB:
-# MONGODB_URI=mongodb://account.mongo.cosmos.azure.com:10255/db?ssl=true&replicaSet=globaldb
 
-# ============================================
-# Azure Storage
-# ============================================
-STORAGE_ACCOUNT_NAME=yourstorageaccount
-STORAGE_ACCOUNT_KEY=your-storage-account-key
+CHATBOT_URL=
+EVAL_API_KEY=
 
-# ============================================
-# Azure OpenAI
-# ============================================
-# For Azure OpenAI (leave OPENAI_ENDPOINT blank to use OpenAI.com)
-OPENAI_ENDPOINT=https://your-resource.openai.azure.com
-OPENAI_KEY=your-openai-api-key
+OPENAI_API_KEY=
+OPENAI_MODEL=
 
-# ============================================
-# Azure Document Intelligence
-# ============================================
-DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-resource.cognitiveservices.azure.com
-DOCUMENT_INTELLIGENCE_KEY=your-document-intelligence-key
-
-# ============================================
-# Azure AI Search
-# ============================================
-SEARCH_ENDPOINT=https://your-resource.search.windows.net
-SEARCH_KEY=your-search-api-key
-SEARCH_INDEX_NAME=nodes_index  # Default: nodes_index
-
-# ============================================
-# Azure Email Communication Service (Optional)
-# ============================================
-EMAIL_CONNECTION_STRING=endpoint=https://your-resource.communication.azure.com/;accesskey=your-key
-EMAIL_DEFAULT_SENDER=DoNotReply@yourdomain.com
-
-# ============================================
-# Frontend (SPA) Variables
-# ============================================
-VITE_API_URL=http://localhost:3080
-VITE_MSAL_CLIENT_ID=your-azure-ad-app-client-id
-VITE_MSAL_TENANT_ID=your-azure-ad-tenant-id
+VITE_API_URL=
+VITE_DISABLE_AUTH=
+VITE_PORT=
 ```
 
-### Optional Variables
+### Start The App
 
-```env
-# API Port (default: 3080 - uncommon port to avoid conflicts with other projects)
-PORT=3080
-
-# Node Environment
-NODE_ENV=development
-```
-
-### Infrastructure setup variables (for `node infra/setup.js`)
-
-If you're using the scripted Azure deployment + CI/CD setup, `infra/setup.js` reads these from the repo-root `/.env`:
-
-```env
-# Deploy app (GitHub Actions → Azure via OIDC)
-DEPLOY_APP_CLIENT_ID=...
-DEPLOY_APP_TENANT_ID=...
-AZURE_SUBSCRIPTION_ID=...  # or legacy: DEPLOY_APP_SUBSCRIPTION_ID
-
-# SPA build variables (used for workflow variables + MSAL redirect URI update)
-VITE_MSAL_CLIENT_ID=...
-VITE_MSAL_TENANT_ID=...
-
-# Container registry credentials (used by API workflow + Web App env vars)
-DOCKER_REGISTRY_SERVER_URL=...
-DOCKER_REGISTRY_SERVER_USERNAME=...
-DOCKER_REGISTRY_SERVER_PASSWORD=...
-```
-
-> **Note**: For local development, configure the application runtime variables above manually in `/.env`. For Azure deployment + CI/CD wiring, run `node infra/setup.js` (details in `infra/README.md`).
-
-## 💻 Development
-
-### API Development
+API:
 
 ```bash
 cd api
-
-# Start in development mode (watch mode)
 npm run start:dev
-
-# Start in debug mode
-npm run start:debug
-
-# Build for production
-npm run build
-
-# Run tests
-npm run test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:cov
-
-# Lint code
-npm run lint
-
-# Format code
-npm run format
 ```
 
-### SPA Development
+SPA:
 
 ```bash
 cd spa
-
-# Start development server
 npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Lint code
-npm run lint
 ```
 
-### Code Style
+Default local URLs:
 
-- **TypeScript**: Strict type checking enabled, no `any` types allowed
-- **Linting**: ESLint with TypeScript rules
-- **Formatting**: Prettier
-- **Validation**: Zod schemas for runtime validation
+- SPA: `http://localhost:5174`
+- API: `http://localhost:3000`
+- Health check: `http://localhost:3000/healthz`
 
-### Creating New Types
+## Environment Variables
 
-See `docs/Create-Type.md` for guidelines on creating new types using Zod schemas.
+All variables live in the root `.env`.
 
-### Testing
+### Required For Core Workflow
 
-- **Unit Tests**: Jest for API, Vitest for SPA (if configured)
-- **E2E Tests**: Available in API project
-- **Test Coverage**: Aim for >80% coverage
+| Variable | Purpose |
+| --- | --- |
+| `MONGODB_URI` | MongoDB connection string |
+| `CHATBOT_URL` | Target chatbot HTTP endpoint |
+| `EVAL_API_KEY` | API key sent to the chatbot as `X-API-Key` |
+| `OPENAI_API_KEY` | Used for format conversion, scoring, and run evaluation |
+| `VITE_API_URL` | Base URL for the SPA to call the API |
 
-## 🚢 Deployment
+### Common Optional Variables
 
-### API Deployment
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Model used for conversion, scoring, and evaluation |
+| `CHATBOT_FIELD` | `message` | Request field used for chatbot input |
+| `CHATBOT_ANSWER_FIELD` | `answer` | Response field containing the chatbot reply |
+| `CHATBOT_THREAD_ID_FIELD` | `threadId` | Response/request field used to continue follow-up turns |
+| `CHATBOT_MAX_FOLLOWUP_TURNS` | `2` | Maximum follow-up turns per test case |
+| `CHATBOT_DELAY_MS` | `5000` | Delay between follow-up calls |
+| `CHATBOT_RESPONSE_SEPARATOR` | `\n---\n` | Separator used when combining multi-turn responses |
+| `PORT` | `3000` | API port |
+| `NODE_ENV` | `development` | Runtime environment |
+| `VITE_PORT` | `5174` | SPA dev and preview port |
+| `VITE_DISABLE_AUTH` | `false` | Skip login in the SPA for local development |
 
-The API is deployed to Azure App Service using Docker containers. GitHub Actions workflows are configured for automatic deployment via Azure Container Registry.
+### Auth Variables
 
-**CI/CD Pipeline:**
-- Workflow file: `.github/workflows/api-docker.yml`
-- Builds Docker image from `api/Dockerfile`
-- Pushes to Azure Container Registry
-- Deploys to Azure App Service
+Only needed when running with Microsoft auth enabled:
 
-**Manual Deployment:**
+| Variable | Purpose |
+| --- | --- |
+| `VITE_MSAL_CLIENT_ID` | SPA app registration client ID |
+| `VITE_MSAL_TENANT_ID` | Microsoft tenant ID |
+| `MSAL_AUDIENCE` | Expected audience for API token validation |
+
+## Main API Endpoints
+
+### Test Sets
+
+- `POST /tests/upload`
+- `POST /tests/convert`
+- `GET /tests/sets`
+- `GET /tests/sets/:testSetId`
+- `PATCH /tests/sets/:testSetId`
+- `DELETE /tests/sets/:testSetId`
+- `POST /tests/sets/:testSetId/run`
+
+### Results
+
+- `GET /results/sets`
+- `GET /results/sets/:resultSetId`
+- `GET /results/sets/:resultSetId/evaluation`
+- `GET /results/sets/:resultSetId/download?format=csv|xlsx`
+
+### Jobs And Health
+
+- `GET /jobs`
+- `GET /jobs/stream`
+- `GET /`
+- `GET /healthz`
+
+## Development Notes
+
+- The dashboard is the main entry point and focuses on uploading test sets, running tests, and reviewing results.
+- Result evaluations are generated after a run completes and summarize both strengths and recurring failures.
+- Jobs are long-running and surfaced live to the SPA through SSE.
+- Event logs are available in the UI for troubleshooting failures and unexpected behavior.
+
+## Scripts
+
+### API
+
 ```bash
 cd api
+npm run start:dev
 npm run build
-
-# Build Docker image
-docker build -t chatqa-api .
-
-# Or deploy using Azure CLI or VS Code Azure extension
+npm run test
+npm run lint
 ```
 
-### SPA Deployment
+### SPA
 
-The SPA is deployed to Azure Static Web Apps. GitHub Actions workflows are configured for automatic deployment.
-
-**CI/CD Pipeline:**
-- Workflow file: `.github/workflows/static-web-app.yml`
-- Automatically builds and deploys on push to `main` branch
-
-**Manual Deployment:**
 ```bash
 cd spa
+npm run dev
 npm run build
-# Deploy using Azure Static Web Apps CLI or VS Code extension
+npm run lint
 ```
 
-### Infrastructure
+## Deployment
 
-Infrastructure + CI/CD can be deployed/configured end-to-end via the scripted setup in `/infra`.
+The repository includes infrastructure and workflow assets under `infra/` and `.github/workflows/`. Those files can still be used for hosted deployments, but the core purpose of the application is chatbot QA and evaluation rather than document-based RAG.
 
-**Deploy infrastructure + configure CI/CD (recommended):**
-```bash
-node infra/setup.js
-```
+## License
 
-This script:
-- Deploys `infra/main.bicep` to a resource group (location currently hardcoded by the script)
-- Generates and passes a JWT signing secret to the deployment
-- Configures GitHub Actions variables/secrets for `.github/workflows/`
-- Updates the MSAL app registration redirect URIs for the deployed Static Web App
-- Creates/updates the Azure AI Search index (`infra/search-index.json`)
-- Triggers the API + SPA workflows (`workflow_dispatch`)
-
-See `infra/README.md` for prerequisites, required permissions, and full behavior.
-
-## 📚 API Documentation
-
-Comprehensive API documentation is available in the `api/README.md` file. It includes:
-
-- Complete endpoint reference
-- WebSocket event documentation
-- Service descriptions
-- Database schema
-- Environment variable reference
-
-**Key Endpoints:**
-
-- `GET /healthz` - Health check
-- `GET /chats/history` - Get chat history
-- `POST /chats/:chatId/feedback` - Submit feedback
-- `GET /documents` - List documents
-- `POST /documents` - Create document
-- `GET /event-logs` - Query event logs
-- `GET /users` - List users
-
-**WebSocket Events:**
-
-- `chat` - Send chat message (streaming response)
-- `ping` - Health check
-
-See `api/README.md` for complete documentation.
-
-## 🤝 Contributing
-
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Make your changes**: Follow code style guidelines
-4. **Write tests**: Ensure new features are tested
-5. **Commit changes**: Use conventional commit messages
-6. **Push to branch**: `git push origin feature/amazing-feature`
-7. **Open a Pull Request**: Provide a clear description of changes
-
-### Development Guidelines
-
-- Follow TypeScript strict mode (no `any` types)
-- Use Zod for runtime validation
-- Write comprehensive tests
-- Update documentation for new features
-- Follow existing code patterns and structure
-
-## 🗺️ Roadmap
-
-### Planned Features
-
-- [ ] **Document Upload in Chat**
-  - Upload documents directly in chat interface
-  - Inline document processing
-
-- [ ] **OpenAI Advanced Features**
-  - Image generation
-  - Code interpreter
-  - Web search integration
-
-- [ ] **Custom Connectors**
-  - SharePoint integration
-  - Google Drive integration
-  - OneDrive integration
-  - Other document sources
-
-- [ ] **Enhanced Infrastructure**
-  - Extend/parameterize templates (regions, SKUs, optional resources)
-  - Improve least-privilege role guidance / deployment options
-
-- [ ] **Additional Features**
-  - Multi-language support
-  - Advanced analytics
-  - Export chat conversations
-  - Document versioning
-
-### Known Limitations
-
-- `infra/setup.js` currently hardcodes the Azure location to **Australia East** (see `infra/README.md`)
-- Some features may require additional Azure service configuration
-
-## 📝 License
-
-Proprietary - See individual package.json files for license information.
-
-## 👤 Author
-
-**Bradley Searle**
-
-## 🙏 Acknowledgments
-
-- Built with [NestJS](https://nestjs.com/)
-- Powered by [React](https://react.dev/)
-- AI capabilities via [Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service)
-- Vector search by [Azure AI Search](https://azure.microsoft.com/en-us/products/search)
-
----
-
-**Need Help?** Check the documentation in the `/docs` directory or open an issue on GitHub.
+Proprietary.
