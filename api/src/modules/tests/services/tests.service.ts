@@ -44,7 +44,7 @@ export class TestsService {
     private readonly evaluateService: EvaluateService,
     private readonly configService: ConfigService,
     private readonly jobsService: JobsService,
-  ) {}
+  ) { }
 
   async uploadTestSet(file: Express.Multer.File, meta: { name?: string; project?: string }) {
     const rows = this.parserService.parseTestRowsBuffer(file.buffer, file.originalname);
@@ -190,12 +190,12 @@ export class TestsService {
 
     const query = keywords
       ? {
-          $or: [
-            { name: { $regex: keywords, $options: 'i' } },
-            { filename: { $regex: keywords, $options: 'i' } },
-            { project: { $regex: keywords, $options: 'i' } },
-          ],
-        }
+        $or: [
+          { name: { $regex: keywords, $options: 'i' } },
+          { filename: { $regex: keywords, $options: 'i' } },
+          { project: { $regex: keywords, $options: 'i' } },
+        ],
+      }
       : {};
 
     const sets = await this.testSetModel
@@ -209,13 +209,13 @@ export class TestsService {
     const setIdStrings = setIds.map((id) => String(id));
     const counts = setIds.length
       ? await this.testCaseModel.aggregate<{ _id: unknown; testCaseCount: number }>([
-          {
-            $match: {
-              $or: [{ testSetId: { $in: setIdStrings } }, { testSetId: { $in: setIds as unknown[] } }],
-            },
+        {
+          $match: {
+            $or: [{ testSetId: { $in: setIdStrings } }, { testSetId: { $in: setIds as unknown[] } }],
           },
-          { $group: { _id: '$testSetId', testCaseCount: { $sum: 1 } } },
-        ])
+        },
+        { $group: { _id: '$testSetId', testCaseCount: { $sum: 1 } } },
+      ])
       : [];
 
     const countBySetId = new Map(counts.map((item) => [String(item._id), item.testCaseCount]));
