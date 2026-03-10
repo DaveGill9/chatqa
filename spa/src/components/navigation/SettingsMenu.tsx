@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../hooks/useTheme";
 import { useAuth } from "../../hooks/useAuth";
 import Button from "../button/Button";
@@ -8,12 +9,18 @@ import styles from "./SettingsMenu.module.scss";
 
 export default function SettingsMenu() {
 
+    const navigate = useNavigate();
     const { theme, setTheme } = useTheme();
     const { logout } = useAuth();
     const [confirmLogout, setConfirmLogout] = useState(false);
 
     const menu = (
         <>
+            <div className={styles.section}>
+                <Button type="block" onClick={() => navigate('/personalities')}>
+                    <Icon name="masks" /> Personalities
+                </Button>
+            </div>
             <div className={styles.theme}>
                 <Button type="block" onClick={() => setTheme('dark')} className={theme === 'dark' ? styles.active : ''}><Icon name="dark_mode" /> Dark mode</Button>
                 <Button type="block" onClick={() => setTheme('light')} className={theme === 'light' ? styles.active : ''}><Icon name="light_mode" /> Light mode</Button>

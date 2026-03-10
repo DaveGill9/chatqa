@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router-dom';
 import LogsPage from '../pages/logs/LogsPage.tsx';
 import LogDetailPage from '../pages/logs/LogDetailPage.tsx';
 import DashboardPage from '../pages/dashboard/DashboardPage.tsx';
+import PersonalitiesPage from '../pages/personalities/PersonalitiesPage.tsx';
 import ResultDetailPage from '../pages/results/ResultDetailPage.tsx';
 
 // Important: The key is used to animate the outlet when the route changes.
@@ -25,5 +26,9 @@ export const routes: RouteObject[] = [
         element: <LogDetailPage key="log-detail" />,
       },
     ],
+  },
+  {
+    path: '/personalities',
+    element: <PersonalitiesPage key="personalities" />,
   },
 ];

@@ -13,6 +13,7 @@
     padding: 20px;
     width: 180px;
 
+    .section,
     .theme,
     .logout {
         display: flex;
@@ -20,6 +21,7 @@
         gap: 10px;
     }
 
+    .section,
     .theme {
 
         button {
