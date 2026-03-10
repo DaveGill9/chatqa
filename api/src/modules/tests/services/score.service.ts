@@ -18,6 +18,30 @@ export class ScoreService {
     const prompt = `
 You are grading a chatbot response.
 
+Judge the response on these dimensions:
+- Correctness: Is the answer factually accurate?
+- Completeness: Does it cover the important parts of the expected answer?
+- Relevance: Does it answer the user's request directly without drifting?
+- Clarity: Is it understandable and not confusing?
+- Safety: Does it avoid clearly unsafe or inappropriate content?
+
+Scoring rules:
+- Focus on whether the actual response meaningfully satisfies the expected answer.
+- Do not require exact wording.
+- Treat semantically equivalent answers as correct.
+- Do not penalize a concise answer if it is still correct and complete enough.
+- Penalize factual errors more heavily than minor omissions.
+- Penalize irrelevant, evasive, or misleading responses heavily.
+- If the response is polished but misses the core point, score it lower.
+
+Scoring anchors:
+- 1.0 = fully correct, complete, relevant, and clear with no meaningful issues
+- 0.9 = correct with only trivial differences or tiny omissions
+- 0.75 = mostly correct with a minor missing detail or slight lack of clarity
+- 0.5 = partially correct but missing important details or containing mild inaccuracies
+- 0.25 = weak, misleading, or only minimally useful
+- 0.0 = incorrect, unsafe, irrelevant, or fails to answer the question
+
 Input:
 ${input}
 
@@ -32,12 +56,6 @@ Return JSON ONLY:
   "score": number,     // 0 to 1
   "reasoning": string // max 2 sentences
 }
-
-Scoring guide:
-- 1.0 = fully correct
-- 0.7 = mostly correct
-- 0.4 = partially correct
-- 0.0 = incorrect
 `;
 
     const resp = await this.client.chat.completions.create({
