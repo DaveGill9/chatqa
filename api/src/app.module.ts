@@ -9,6 +9,7 @@ import { getAppVersion } from './utils/get-app-version';
 import { HealthModule } from './modules/health/health.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { ParseModule } from './modules/parse/parse.module';
+import { PersonalitiesModule } from './modules/personalities/personalities.module';
 import { ResultsModule } from './modules/results/results.module';
 import { TestsModule } from './modules/tests/tests.module';
 import { HttpExceptionFilter } from './modules/event-logs/filters/http-exception.filter';
@@ -61,6 +62,7 @@ import { AuthGuard } from './modules/users/guards/auth.guard';
     HealthModule,
     JobsModule,
     ParseModule,
+    PersonalitiesModule,
     ResultsModule,
     TestsModule,
     EventLogsModule,
