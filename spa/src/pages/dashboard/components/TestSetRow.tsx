@@ -86,7 +86,9 @@ export default function TestSetRow({
         <div className={styles.statusCell}>
           {runs.length === 0 ? 'No runs' : `${runs.length} run${runs.length === 1 ? '' : 's'}`}
         </div>
-        <div className={styles.dateCell}>{format(new Date(testSet.createdAt), 'h:mma d MMM yyyy')}</div>
+        <div className={styles.dateCell}>
+          {format(new Date(testSet.updatedAt || testSet.createdAt), 'h:mma d MMM yyyy')}
+        </div>
         <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
           <Popover
             menu={

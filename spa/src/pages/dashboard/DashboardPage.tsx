@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const [expandedSetId, setExpandedSetId] = useState<string | null>(null);
   const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [deleteConfirmSetId, setDeleteConfirmSetId] = useState<string | null>(null);
@@ -55,9 +55,12 @@ export default function DashboardPage() {
     const toProcess = completedRuns.filter((j) => !processedRunIds.current.has(j.id));
     if (toProcess.length === 0) return;
     toProcess.forEach((j) => processedRunIds.current.add(j.id));
-    const timeout = setTimeout(() => resetResultSets(), 500);
+    const timeout = setTimeout(() => {
+      resetResultSets();
+      resetTestSets();
+    }, 500);
     return () => clearTimeout(timeout);
-  }, [jobs, resetResultSets]);
+  }, [jobs, resetResultSets, resetTestSets]);
 
   useEffect(() => {
     const completedConverts = jobs.filter(
@@ -89,9 +92,9 @@ export default function DashboardPage() {
 
     list.sort((a, b) => {
       switch (sortKey) {
-        case 'createdAt': {
-          const av = new Date(a.createdAt).getTime();
-          const bv = new Date(b.createdAt).getTime();
+        case 'updatedAt': {
+          const av = new Date(a.updatedAt || a.createdAt).getTime();
+          const bv = new Date(b.updatedAt || b.createdAt).getTime();
           return direction * compareNumber(av, bv);
         }
         case 'name': {
@@ -116,7 +119,7 @@ export default function DashboardPage() {
       return;
     }
     setSortKey(nextKey);
-    setSortDirection(nextKey === 'createdAt' ? 'desc' : 'asc');
+    setSortDirection(nextKey === 'updatedAt' ? 'desc' : 'asc');
   };
 
   const handlePreview = (testSetId: string) => {
@@ -128,6 +131,11 @@ export default function DashboardPage() {
     try {
       const response = await apiClient.post(`/tests/sets/${testSetId}/run`);
       const result = response.data as { jobId: string; resultSetId: string; testSetId: string; status: string; total: number };
+      const now = new Date().toISOString();
+      setTestSetsData((prev) => {
+        if (!prev) return prev;
+        return prev.map((s) => (s._id === testSetId ? { ...s, updatedAt: now } : s));
+      });
       toast.success(`Run started (${result.total} cases). Watch the Jobs panel for progress.`);
       setExpandedSetId(testSetId);
     } catch (error) {
@@ -165,9 +173,10 @@ export default function DashboardPage() {
     try {
       const response = await apiClient.patch(`/tests/sets/${testSetId}`, { name: trimmed });
       const updated = response.data as { name: string };
+      const now = new Date().toISOString();
       setTestSetsData((prev) => {
         if (!prev) return prev;
-        return prev.map((s) => (s._id === testSetId ? { ...s, name: updated.name } : s));
+        return prev.map((s) => (s._id === testSetId ? { ...s, name: updated.name, updatedAt: now } : s));
       });
       toast.success('Test set renamed');
     } catch (error) {
@@ -197,6 +206,7 @@ export default function DashboardPage() {
     setUploading(true);
     try {
       const response = await apiClient.post('/tests/upload', formData);
+      const now = new Date().toISOString();
       const created = response.data as {
         testSetId: string;
         name: string;
@@ -213,7 +223,8 @@ export default function DashboardPage() {
           filename: created.filename,
           sizeBytes: created.sizeBytes ?? null,
           project: created.project ?? null,
-          createdAt: new Date().toISOString(),
+          createdAt: now,
+          updatedAt: now,
           testCaseCount: created.testCaseCount ?? 0,
         });
         return next;

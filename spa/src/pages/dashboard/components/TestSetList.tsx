@@ -105,10 +105,10 @@ export default function TestSetList({
             <button
               type="button"
               className={[styles.headerButton, styles.dateCell].join(' ')}
-              onClick={() => onToggleSort('createdAt')}
-              aria-label="Sort by date"
+              onClick={() => onToggleSort('updatedAt')}
+              aria-label="Sort by modified date"
             >
-              Added {sortIndicator('createdAt', sortKey, sortDirection)}
+              Modified {sortIndicator('updatedAt', sortKey, sortDirection)}
             </button>
             <span className={styles.headerActions} aria-hidden>
               Actions

@@ -200,7 +200,7 @@ export class TestsService {
 
     const sets = await this.testSetModel
       .find(query)
-      .sort({ createdAt: -1 })
+      .sort({ updatedAt: -1 })
       .skip(offset)
       .limit(limit)
       .lean();
@@ -303,6 +303,8 @@ export class TestsService {
       testSetName: set.name,
       testSetFilename: set.filename,
     });
+
+    await this.testSetModel.updateOne({ _id: set._id }, { $currentDate: { updatedAt: true } });
 
     const resultSetId = String(resultSet._id);
 

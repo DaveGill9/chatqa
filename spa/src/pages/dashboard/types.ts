@@ -5,6 +5,7 @@ export type TestSet = {
   sizeBytes?: number | null;
   project?: string | null;
   createdAt: string;
+  updatedAt: string;
   testCaseCount?: number;
 };
 
@@ -35,5 +36,5 @@ export type ResultSet = {
   testSetFilename?: string | null;
 };
 
-export type SortKey = 'createdAt' | 'name' | 'testCaseCount';
+export type SortKey = 'updatedAt' | 'name' | 'testCaseCount';
 export type SortDirection = 'asc' | 'desc';

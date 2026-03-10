@@ -25,3 +25,4 @@ export class TestSet extends BaseEntity {
 export const TestSetSchema = SchemaFactory.createForClass(TestSet);
 
 TestSetSchema.index({ createdAt: -1 });
+TestSetSchema.index({ updatedAt: -1 });
