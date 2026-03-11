@@ -9,20 +9,26 @@ import { TestsService } from '../services/tests.service';
 export class TestsController {
   constructor(private readonly testsService: TestsService) {}
 
+  private validateUploadedSpreadsheet(file?: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+
+    const fileExtension = (file.originalname.split('.').pop() || '')
+      .trim()
+      .toLowerCase();
+    if (!['csv', 'xlsx', 'xls'].includes(fileExtension)) {
+      throw new BadRequestException('Only CSV and Excel files are supported');
+    }
+  }
+
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadTestSet(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { name?: string; project?: string },
   ) {
-    if (!file) {
-      throw new BadRequestException('File is required');
-    }
-
-    const fileExtension = (file.originalname.split('.').pop() || '').trim().toLowerCase();
-    if (!['csv', 'xlsx', 'xls'].includes(fileExtension)) {
-      throw new BadRequestException('Only CSV and Excel files are supported');
-    }
+    this.validateUploadedSpreadsheet(file);
 
     return this.testsService.uploadTestSet(file, body);
   }
@@ -33,14 +39,7 @@ export class TestsController {
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { name?: string; project?: string; prompt?: string },
   ) {
-    if (!file) {
-      throw new BadRequestException('File is required');
-    }
-
-    const fileExtension = (file.originalname.split('.').pop() || '').trim().toLowerCase();
-    if (!['csv', 'xlsx', 'xls'].includes(fileExtension)) {
-      throw new BadRequestException('Only CSV and Excel files are supported');
-    }
+    this.validateUploadedSpreadsheet(file);
 
     return this.testsService.convertAndUpload(file, {
       name: body.name,

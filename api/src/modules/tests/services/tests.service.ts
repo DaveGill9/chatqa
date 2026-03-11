@@ -44,7 +44,7 @@ export class TestsService {
     private readonly evaluateService: EvaluateService,
     private readonly configService: ConfigService,
     private readonly jobsService: JobsService,
-  ) { }
+  ) {}
 
   async uploadTestSet(file: Express.Multer.File, meta: { name?: string; project?: string }) {
     const rows = this.parserService.parseTestRowsBuffer(file.buffer, file.originalname);
@@ -57,16 +57,9 @@ export class TestsService {
       project: meta.project?.trim() || undefined,
     });
 
-    const cases = rows.map((row: TestRow, index) => {
-      const { id, input, expected, actual, score, reasoning, ...extras } = row;
-      return {
-        testSetId: String(createdSet._id),
-        id: String(id || index + 1),
-        input: String(input),
-        expected: String(expected),
-        additionalContext: extras,
-      };
-    });
+    const cases = rows.map((row, index) =>
+      this.toStoredTestCase(String(createdSet._id), row, index, true),
+    );
 
     if (cases.length > 0) {
       await this.testCaseModel.insertMany(cases);
@@ -144,16 +137,9 @@ export class TestsService {
         project: meta.project?.trim() || undefined,
       });
 
-      const cases = rows.map((row: TestRow, index) => {
-        const { id, input, expected, actual, score, reasoning, ...extras } = row;
-        return {
-          testSetId: String(createdSet._id),
-          id: String(id || index + 1),
-          input: String(input),
-          expected: String(expected),
-          additionalContext: Object.keys(extras).length ? extras : undefined,
-        };
-      });
+      const cases = rows.map((row, index) =>
+        this.toStoredTestCase(String(createdSet._id), row, index),
+      );
 
       if (cases.length > 0) {
         await this.testCaseModel.insertMany(cases);
@@ -247,17 +233,17 @@ export class TestsService {
     }
     const setIdStr = String(set._id);
     const resultSets = await this.resultSetModel
-      .find({ testSetId: { $in: [setIdStr, set._id as unknown] } })
+      .find({ testSetId: this.matchStoredId(set._id) })
       .select({ _id: 1 })
       .lean();
     const resultSetIds = resultSets.map((rs) => String(rs._id));
 
-    await this.resultCaseModel.deleteMany({ testSetId: { $in: [setIdStr, set._id as unknown] } });
+    await this.resultCaseModel.deleteMany({ testSetId: this.matchStoredId(set._id) });
     if (resultSetIds.length > 0) {
       await this.evaluationModel.deleteMany({ resultSetId: { $in: resultSetIds } });
     }
-    await this.resultSetModel.deleteMany({ testSetId: { $in: [setIdStr, set._id as unknown] } });
-    await this.testCaseModel.deleteMany({ testSetId: { $in: [setIdStr, set._id as unknown] } });
+    await this.resultSetModel.deleteMany({ testSetId: this.matchStoredId(set._id) });
+    await this.testCaseModel.deleteMany({ testSetId: this.matchStoredId(set._id) });
     await this.testSetModel.findByIdAndDelete(testSetId);
   }
 
@@ -268,7 +254,7 @@ export class TestsService {
     }
 
     const cases = await this.testCaseModel
-      .find({ testSetId: { $in: [String(set._id), set._id as unknown] } })
+      .find({ testSetId: this.matchStoredId(set._id) })
       .sort({ createdAt: 1 })
       .lean();
 
@@ -433,39 +419,23 @@ export class TestsService {
 
           this.logger.debug(`Test ${testCase.id}: score=${score.score}`);
 
-          await this.resultCaseModel.create({
-            resultSetId,
-            testSetId: String(set._id),
-            testCaseId: String(testCase._id),
-            id: String(testCase.id),
-            input: String(testCase.input),
-            expected: String(testCase.expected),
-            actual,
-            score: score.score,
-            reasoning: score.reasoning,
-            additionalContext:
-              testCase.additionalContext && typeof testCase.additionalContext === 'object'
-                ? (testCase.additionalContext as Record<string, unknown>)
-                : undefined,
-          });
+          await this.resultCaseModel.create(
+            this.toResultCaseDocument(resultSetId, set._id, testCase, {
+              actual,
+              score: score.score,
+              reasoning: score.reasoning,
+            }),
+          );
           successCount++;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          await this.resultCaseModel.create({
-            resultSetId,
-            testSetId: String(set._id),
-            testCaseId: String(testCase._id),
-            id: String(testCase.id),
-            input: String(testCase.input),
-            expected: String(testCase.expected),
-            actual: '',
-            score: 0,
-            reasoning: `ERROR: ${message}`,
-            additionalContext:
-              testCase.additionalContext && typeof testCase.additionalContext === 'object'
-                ? (testCase.additionalContext as Record<string, unknown>)
-                : undefined,
-          });
+          await this.resultCaseModel.create(
+            this.toResultCaseDocument(resultSetId, set._id, testCase, {
+              actual: '',
+              score: 0,
+              reasoning: `ERROR: ${message}`,
+            }),
+          );
           failedCount++;
         }
       }
@@ -546,11 +516,56 @@ export class TestsService {
     return this.parserService.toCsvBuffer(rows);
   }
 
+  private matchStoredId(id: unknown) {
+    return { $in: [String(id), id] };
+  }
+
+  private toStoredTestCase(
+    testSetId: string,
+    row: TestRow,
+    index: number,
+    preserveEmptyContext = false,
+  ) {
+    const { id, input, expected, actual, score, reasoning, ...extras } = row;
+
+    return {
+      testSetId,
+      id: String(id || index + 1),
+      input: String(input),
+      expected: String(expected),
+      additionalContext:
+        preserveEmptyContext || Object.keys(extras).length > 0 ? extras : undefined,
+    };
+  }
+
+  private toResultCaseDocument(
+    resultSetId: string,
+    testSetId: unknown,
+    testCase: TestCase,
+    outcome: { actual: string; score: number; reasoning: string },
+  ) {
+    return {
+      resultSetId,
+      testSetId: String(testSetId),
+      testCaseId: String(testCase._id),
+      id: String(testCase.id),
+      input: String(testCase.input),
+      expected: String(testCase.expected),
+      actual: outcome.actual,
+      score: outcome.score,
+      reasoning: outcome.reasoning,
+      additionalContext: this.getAdditionalContext(testCase.additionalContext),
+    };
+  }
+
+  private getAdditionalContext(value: unknown): Record<string, unknown> | undefined {
+    return value && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : undefined;
+  }
+
   private resultCaseToRow(resultCase: Partial<ResultCase>): TestRow {
-    const extras =
-      resultCase.additionalContext && typeof resultCase.additionalContext === 'object'
-        ? (resultCase.additionalContext as Record<string, unknown>)
-        : {};
+    const extras = this.getAdditionalContext(resultCase.additionalContext) ?? {};
 
     return {
       id: String(resultCase.id ?? ''),
@@ -564,10 +579,7 @@ export class TestsService {
   }
 
   private toTestRow(testCase: TestCase): TestRow {
-    const extras =
-      testCase.additionalContext && typeof testCase.additionalContext === 'object'
-        ? testCase.additionalContext
-        : {};
+    const extras = this.getAdditionalContext(testCase.additionalContext) ?? {};
 
     return {
       id: String(testCase.id),

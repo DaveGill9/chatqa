@@ -49,15 +49,8 @@ export class ResultsService {
   }
 
   async getResultSet(resultSetId: string) {
-    const set = await this.resultSetModel.findById(resultSetId).lean();
-    if (!set) {
-      throw new NotFoundException('Result set not found');
-    }
-
-    const cases = await this.resultCaseModel
-      .find({ resultSetId: { $in: [String(set._id), set._id as unknown] } })
-      .sort({ createdAt: 1 })
-      .lean();
+    const set = await this.getResultSetOrThrow(resultSetId);
+    const cases = await this.getResultCases(set._id);
 
     return {
       ...set,
@@ -67,23 +60,13 @@ export class ResultsService {
   }
 
   async getResultSetEvaluation(resultSetId: string) {
-    const set = await this.resultSetModel.findById(resultSetId).lean();
-    if (!set) {
-      throw new NotFoundException('Result set not found');
-    }
+    await this.getResultSetOrThrow(resultSetId);
     return this.evaluateService.getEvaluation(resultSetId);
   }
 
   async getResultSetRows(resultSetId: string): Promise<TestRow[]> {
-    const set = await this.resultSetModel.findById(resultSetId).lean();
-    if (!set) {
-      throw new NotFoundException('Result set not found');
-    }
-
-    const cases = await this.resultCaseModel
-      .find({ resultSetId: { $in: [String(set._id), set._id as unknown] } })
-      .sort({ createdAt: 1 })
-      .lean();
+    const set = await this.getResultSetOrThrow(resultSetId);
+    const cases = await this.getResultCases(set._id);
 
     return cases.map((c) => this.resultCaseToRow(c));
   }
@@ -93,6 +76,21 @@ export class ResultsService {
       return this.parserService.toXlsxBuffer(rows, 'Results');
     }
     return this.parserService.toCsvBuffer(rows);
+  }
+
+  private async getResultSetOrThrow(resultSetId: string) {
+    const set = await this.resultSetModel.findById(resultSetId).lean();
+    if (!set) {
+      throw new NotFoundException('Result set not found');
+    }
+    return set;
+  }
+
+  private async getResultCases(resultSetId: unknown) {
+    return this.resultCaseModel
+      .find({ resultSetId: { $in: [String(resultSetId), resultSetId] } })
+      .sort({ createdAt: 1 })
+      .lean();
   }
 
   private resultCaseToRow(resultCase: Partial<ResultCase>): TestRow {
