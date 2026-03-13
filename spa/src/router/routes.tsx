@@ -1,9 +1,12 @@
+import { Suspense, lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
-import LogsPage from '../pages/logs/LogsPage.tsx';
-import LogDetailPage from '../pages/logs/LogDetailPage.tsx';
-import DashboardPage from '../pages/dashboard/DashboardPage.tsx';
-import PersonalitiesPage from '../pages/personalities/PersonalitiesPage.tsx';
-import ResultDetailPage from '../pages/results/ResultDetailPage.tsx';
+import Feedback from '../components/feedback/Feedback';
+
+const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage.tsx'));
+const LogsPage = lazy(() => import('../pages/logs/LogsPage.tsx'));
+const LogDetailPage = lazy(() => import('../pages/logs/LogDetailPage.tsx'));
+const PersonalitiesPage = lazy(() => import('../pages/personalities/PersonalitiesPage.tsx'));
+const ResultDetailPage = lazy(() => import('../pages/results/ResultDetailPage.tsx'));
 
 // Important: The key is used to animate the outlet when the route changes.
 // The key should be stable for children of the route so that the parent does not animate when the child changes.
@@ -11,24 +14,44 @@ import ResultDetailPage from '../pages/results/ResultDetailPage.tsx';
 export const routes: RouteObject[] = [
   {
     path: '/',
-    element: <DashboardPage key="dashboard" />,
+    element: (
+      <Suspense fallback={<Feedback type="loading" />} key="dashboard">
+        <DashboardPage />
+      </Suspense>
+    ),
   },
   {
     path: '/results/:resultSetId',
-    element: <ResultDetailPage key="result-detail" />,
+    element: (
+      <Suspense fallback={<Feedback type="loading" />} key="result-detail">
+        <ResultDetailPage />
+      </Suspense>
+    ),
   },
   {
     path: '/logs',
-    element: <LogsPage key="logs-list" />,
+    element: (
+      <Suspense fallback={<Feedback type="loading" />} key="logs-list">
+        <LogsPage />
+      </Suspense>
+    ),
     children: [
       {
         path: ':id',
-        element: <LogDetailPage key="log-detail" />,
+        element: (
+          <Suspense fallback={<Feedback type="loading" />} key="log-detail">
+            <LogDetailPage />
+          </Suspense>
+        ),
       },
     ],
   },
   {
     path: '/personalities',
-    element: <PersonalitiesPage key="personalities" />,
+    element: (
+      <Suspense fallback={<Feedback type="loading" />} key="personalities">
+        <PersonalitiesPage />
+      </Suspense>
+    ),
   },
 ];
