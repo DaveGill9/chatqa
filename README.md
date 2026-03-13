@@ -16,9 +16,8 @@ ChatQA is built around a simple workflow:
 
 This repository is a monorepo containing:
 
-- `api/`: NestJS backend for uploads, test execution, scoring, evaluations, jobs, logs, and auth.
+- `api/`: NestJS backend for uploads, test execution, scoring, evaluations, personalities, jobs, logs, and auth.
 - `spa/`: React frontend for managing test sets and viewing results.
-- `infra/`: deployment and infrastructure assets.
 
 ## Core Features
 
@@ -26,6 +25,7 @@ This repository is a monorepo containing:
 - Accept canonical test rows with required `id`, `input`, and `expected` fields.
 - Preserve extra spreadsheet columns and pass them through to the chatbot endpoint as request context.
 - Convert arbitrary spreadsheets into the canonical test format using OpenAI.
+- Manage reusable chatbot personalities/configurations through the API.
 - Run test sets asynchronously with live job progress via server-sent events.
 - Support follow-up turns when the chatbot asks clarifying questions.
 - Score each result from `0.0` to `1.0` with short reasoning.
@@ -99,17 +99,18 @@ id,input,expected,project,region
 ```text
 chatqa/
 ├── api/                     # NestJS API
+│   ├── src/modules/personalities/
 │   ├── src/modules/tests/   # Upload, convert, run test sets
 │   ├── src/modules/results/ # Stored runs and evaluations
 │   ├── src/modules/jobs/    # Background job progress + SSE stream
-│   ├── src/modules/event-logs/
-│   ├── src/modules/users/   # Auth support
+│   ├── src/modules/event-logs/ # Structured app event logs
+│   ├── src/modules/users/   # Auth + user records
+│   ├── src/modules/parse/   # Spreadsheet parsing utilities
 │   └── src/modules/health/
 ├── spa/                     # React dashboard
 │   ├── src/pages/dashboard/ # Test sets and run controls
 │   ├── src/pages/results/   # Result details and evaluation summary
 │   └── src/pages/logs/      # Event log viewer
-├── infra/                   # Deployment/infrastructure assets
 └── README.md
 ```
 
@@ -142,15 +143,23 @@ Minimal local setup:
 ```env
 MONGODB_URI=mongodb://localhost:27017/chatqa
 
-CHATBOT_URL=
-EVAL_API_KEY=
+CHATBOT_URL=http://localhost:4000/chat
+EVAL_API_KEY=your-chatbot-api-key
 
-OPENAI_API_KEY=
-OPENAI_MODEL=
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-4o-mini
 
-VITE_API_URL=
-VITE_DISABLE_AUTH=
-VITE_PORT=
+VITE_API_URL=http://localhost:3000
+VITE_DISABLE_AUTH=true
+VITE_PORT=5174
+```
+
+If you want Microsoft auth enabled locally, also set:
+
+```env
+VITE_MSAL_CLIENT_ID=
+VITE_MSAL_TENANT_ID=
+MSAL_AUDIENCE=
 ```
 
 ### Start The App
@@ -174,6 +183,8 @@ Default local URLs:
 - SPA: `http://localhost:5174`
 - API: `http://localhost:3000`
 - Health check: `http://localhost:3000/healthz`
+
+In development, the API enables CORS for `http://localhost:5173` and `http://localhost:5174`.
 
 ## Environment Variables
 
@@ -200,6 +211,7 @@ All variables live in the root `.env`.
 | `CHATBOT_MAX_FOLLOWUP_TURNS` | `2` | Maximum follow-up turns per test case |
 | `CHATBOT_DELAY_MS` | `5000` | Delay between follow-up calls |
 | `CHATBOT_RESPONSE_SEPARATOR` | `\n---\n` | Separator used when combining multi-turn responses |
+| `APP_VERSION` | derived from package version | Version returned by health endpoints and startup logs |
 | `PORT` | `3000` | API port |
 | `NODE_ENV` | `development` | Runtime environment |
 | `VITE_PORT` | `5174` | SPA dev and preview port |
@@ -234,6 +246,27 @@ Only needed when running with Microsoft auth enabled:
 - `GET /results/sets/:resultSetId/evaluation`
 - `GET /results/sets/:resultSetId/download?format=csv|xlsx`
 
+### Personalities
+
+- `GET /personalities`
+- `GET /personalities/:id`
+- `POST /personalities`
+- `PATCH /personalities/:id`
+- `DELETE /personalities/:id`
+
+### Event Logs
+
+- `GET /event-logs`
+- `GET /event-logs/:id`
+- `POST /event-logs`
+- `POST /event-logs/bulk`
+
+### Auth And Users
+
+- `GET /auth/init`
+- `GET /users`
+- `GET /users/:id`
+
 ### Jobs And Health
 
 - `GET /jobs`
@@ -244,6 +277,7 @@ Only needed when running with Microsoft auth enabled:
 ## Development Notes
 
 - The dashboard is the main entry point and focuses on uploading test sets, running tests, and reviewing results.
+- The backend also exposes CRUD endpoints for personalities plus lightweight auth and user endpoints.
 - Result evaluations are generated after a run completes and summarize both strengths and recurring failures.
 - Jobs are long-running and surfaced live to the SPA through SSE.
 - Event logs are available in the UI for troubleshooting failures and unexpected behavior.
@@ -268,10 +302,6 @@ npm run dev
 npm run build
 npm run lint
 ```
-
-## Deployment
-
-The repository includes infrastructure and workflow assets under `infra/` and `.github/workflows/`. Those files can still be used for hosted deployments, but the core purpose of the application is chatbot QA and evaluation rather than document-based RAG.
 
 ## License
 
