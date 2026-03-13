@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import Icon from '../../../components/icon/Icon';
 import Input from '../../../components/input/Input';
 import Button from '../../../components/button/Button';
@@ -5,8 +6,7 @@ import styles from '../DashboardPage.module.scss';
 
 interface DashboardControlsProps {
   keywords: string;
-  onKeywordsChange: (value: string) => void;
-  onSearch: () => void;
+  onSearch: (keywords: string) => void;
   onConvert: () => void;
   onUpload: () => void;
   uploading: boolean;
@@ -14,12 +14,17 @@ interface DashboardControlsProps {
 
 export default function DashboardControls({
   keywords,
-  onKeywordsChange,
   onSearch,
   onConvert,
   onUpload,
   uploading,
 }: DashboardControlsProps) {
+  const [draftKeywords, setDraftKeywords] = useState(keywords);
+
+  useEffect(() => {
+    setDraftKeywords(keywords);
+  }, [keywords]);
+
   return (
     <div className={styles.controlsBar}>
       <div className={styles.searchWrap}>
@@ -27,9 +32,9 @@ export default function DashboardControls({
         <Input
           type="search"
           placeholder="Search test sets"
-          value={keywords}
-          onTextChange={onKeywordsChange}
-          onEnter={onSearch}
+          value={draftKeywords}
+          onTextChange={setDraftKeywords}
+          onEnter={() => onSearch(draftKeywords.trim())}
           className={styles.searchInput}
         />
       </div>

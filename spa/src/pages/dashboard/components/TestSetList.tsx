@@ -15,8 +15,7 @@ interface TestSetListProps {
   keywords: string;
   uploading: boolean;
   loading: boolean;
-  onKeywordsChange: (value: string) => void;
-  onSearch: () => void;
+  onSearch: (keywords: string) => void;
   onConvert: () => void;
   onUpload: () => void;
   onToggleSort: (key: SortKey) => void;
@@ -47,7 +46,6 @@ export default function TestSetList({
   keywords,
   uploading,
   loading,
-  onKeywordsChange,
   onSearch,
   onConvert,
   onUpload,
@@ -66,7 +64,6 @@ export default function TestSetList({
     <div className={styles.list}>
       <DashboardControls
         keywords={keywords}
-        onKeywordsChange={onKeywordsChange}
         onSearch={onSearch}
         onConvert={onConvert}
         onUpload={onUpload}

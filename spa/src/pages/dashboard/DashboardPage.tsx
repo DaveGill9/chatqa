@@ -19,7 +19,6 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const setIdFromUrl = searchParams.get('setId');
 
-  const [keywords, setKeywords] = useState('');
   const [uploading, setUploading] = useState(false);
   const [convertDialogVisible, setConvertDialogVisible] = useState(false);
   const [expandedSetId, setExpandedSetId] = useState<string | null>(null);
@@ -254,11 +253,10 @@ export default function DashboardPage() {
             expandedSetId={expandedSetId}
             editingSetId={editingSetId}
             openMenuSetId={openMenuSetId}
-            keywords={keywords}
+            keywords={appliedKeywords}
             uploading={uploading}
             loading={testSetsLoading || resultSetsLoading}
-            onKeywordsChange={setKeywords}
-            onSearch={() => setAppliedKeywords(keywords.trim())}
+            onSearch={(keywords) => setAppliedKeywords(keywords)}
             onConvert={() => setConvertDialogVisible(true)}
             onUpload={selectFiles}
             onToggleSort={toggleSort}
