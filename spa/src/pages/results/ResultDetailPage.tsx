@@ -12,6 +12,7 @@ import type { Evaluation, ResultSetMeta, TestRow } from './types';
 import { EvaluationModal, ResultCarousel, ResultDownloadMenu } from './components';
 import styles from './ResultDetailPage.module.scss';
 
+// Load a result set, show its rows, and expose evaluation and download actions.
 export default function ResultDetailPage() {
   const { resultSetId } = useParams<{ resultSetId: string }>();
   const navigate = useNavigate();
@@ -76,6 +77,7 @@ export default function ResultDetailPage() {
     };
   }, [resultSetId]);
 
+  // Fetch the saved AI summary for the current result set.
   const fetchEvaluation = async (id: string) => {
     setEvaluationLoading(true);
     setEvaluation(null);
@@ -90,6 +92,7 @@ export default function ResultDetailPage() {
     }
   };
 
+  // Download the current result set in the selected export format.
   const downloadResultSet = async (id: string, formatType: 'csv' | 'xlsx') => {
     try {
       const response = await apiClient.get(`/results/sets/${id}/download`, {

@@ -39,6 +39,7 @@ function sortPersonalities(list: Personality[]) {
   return list.slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
+// Manage the searchable list of reusable AI writing personalities.
 export default function PersonalitiesPage() {
   const [keywords, setKeywords] = useState('');
   const [appliedKeywords, setAppliedKeywords] = useState('');
@@ -90,6 +91,7 @@ export default function PersonalitiesPage() {
     setForm(emptyForm);
   };
 
+  // Create a new personality or update the one currently being edited.
   const handleSave = async () => {
     const payload = {
       name: form.name.trim(),
@@ -125,6 +127,7 @@ export default function PersonalitiesPage() {
     }
   };
 
+  // Remove the selected personality and update the visible list.
   const handleDelete = async () => {
     if (!deleteConfirmPersonality) return;
 

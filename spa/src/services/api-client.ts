@@ -29,7 +29,7 @@ apiClient.interceptors.request.use(
       console.error('Failed to acquire token for API request:', error);
       // You might want to redirect to login or handle this differently
     }
-    
+
     return config;
   },
   (error) => {

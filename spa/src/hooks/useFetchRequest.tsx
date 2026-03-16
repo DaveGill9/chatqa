@@ -5,7 +5,7 @@ import { toast } from "../services/toast-service";
 const useFetchRequest = <T,>(url: string) => {
 
     const [data, setData] = useState<T | undefined>(undefined);
-    
+
     const isLoadingRef = useRef(false);
     const [loading, _setLoading] = useState(false);
     const setLoading = (loading: boolean) => {
@@ -25,9 +25,9 @@ const useFetchRequest = <T,>(url: string) => {
         } finally {
             setLoading(false);
         }
-    }, [url]);    
+    }, [url]);
 
-    useEffect(() => {        
+    useEffect(() => {
         if (url)
             fetchData();
     }, [url, fetchData]);

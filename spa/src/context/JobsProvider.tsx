@@ -10,6 +10,7 @@ function getJobsStreamUrl(): string {
 export const JobsProvider = ({ children }: { children: ReactNode }) => {
   const [jobs, setJobs] = useState<Job[]>([]);
 
+  // Merge incoming job updates by id while keeping the newest jobs first.
   const mergeJob = useCallback((job: Job) => {
     setJobs((prev) => {
       const map = new Map(prev.map((j) => [j.id, j]));

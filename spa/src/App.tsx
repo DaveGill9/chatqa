@@ -29,7 +29,7 @@ function App() {
   if (user === undefined) {
     return <Feedback type="loading" />;
   }
-  
+
   if (!user) {
     return <LoginPage />;
   }

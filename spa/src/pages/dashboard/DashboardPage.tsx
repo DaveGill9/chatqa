@@ -14,6 +14,7 @@ import type { SortKey, SortDirection, TestSet, ResultSet } from './types';
 import { ConvertFormatDialog, TestSetList, TestSetPreview } from './components';
 import styles from './DashboardPage.module.scss';
 
+// Orchestrate test-set uploads, runs, and result browsing from one screen.
 export default function DashboardPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -83,6 +84,7 @@ export default function DashboardPage() {
     return map;
   }, [resultSetsData]);
 
+  // Keep test sets ordered by the selected column and direction.
   const sortedTestSets = useMemo(() => {
     const list = (testSetsData ?? []).slice();
     const direction = sortDirection === 'asc' ? 1 : -1;
@@ -126,6 +128,7 @@ export default function DashboardPage() {
     setPreviewVisible(true);
   };
 
+  // Start a background run and surface immediate feedback in the dashboard.
   const handleRun = async (testSetId: string) => {
     try {
       const response = await apiClient.post(`/tests/sets/${testSetId}/run`);
@@ -146,6 +149,7 @@ export default function DashboardPage() {
     navigate(`/results/${resultSetId}`);
   };
 
+  // Delete a test set locally after the API removes its related records.
   const handleDelete = async (testSetId: string) => {
     try {
       await apiClient.delete(`/tests/sets/${testSetId}`);
@@ -199,6 +203,7 @@ export default function DashboardPage() {
     file.click();
   };
 
+  // Upload a spreadsheet and prepend the created test set to the current list.
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
