@@ -9,6 +9,7 @@ const MAX_JOBS = 100;
 export class JobsService extends EventEmitter {
   private jobs = new Map<string, Job>();
 
+  // Create an in-memory job entry and broadcast its initial state.
   addJob(type: JobType, meta: Partial<Job['meta']> & { label: string }): string {
     const id = randomUUID();
     const job: Job = {
@@ -25,6 +26,7 @@ export class JobsService extends EventEmitter {
     return id;
   }
 
+  // Merge job progress updates and notify subscribers of the latest state.
   updateJob(id: string, update: Partial<Pick<Job, 'status' | 'detail' | 'stage' | 'completedAt'>> & { meta?: Partial<Job['meta']> }): void {
     const job = this.jobs.get(id);
     if (!job) return;
@@ -46,6 +48,7 @@ export class JobsService extends EventEmitter {
     return list.slice(0, limit);
   }
 
+  // Register a listener for live job status updates.
   subscribe(callback: (job: Job) => void): () => void {
     const handler = (payload: { id: string; job: Job }) => callback(payload.job);
     this.on('job', handler);

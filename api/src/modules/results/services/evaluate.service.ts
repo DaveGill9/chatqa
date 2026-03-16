@@ -30,6 +30,7 @@ export class EvaluateService {
     this.client = new OpenAI({ apiKey });
   }
 
+  // Generate and persist a one-time AI summary for a result set.
   async evaluateResultSet(resultSetId: string, rows: TestRow[]): Promise<ResultSetEvaluation | null> {
     if (rows.length === 0) {
       this.logger.warn(`No rows to evaluate for result set ${resultSetId}`);
@@ -62,6 +63,7 @@ export class EvaluateService {
     return this.evaluationModel.findOne({ resultSetId }).lean();
   }
 
+  // Sample the run, prompt the model, and normalize the JSON response.
   private async runEvaluation(rows: TestRow[]): Promise<EvaluationResult> {
     const sampleSize = Math.min(30, rows.length);
     const sample = rows.slice(0, sampleSize);

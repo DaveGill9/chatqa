@@ -35,6 +35,7 @@ export class ResultsController {
     return this.resultsService.getResultSetEvaluation(resultSetId);
   }
 
+  // Download a result set as a CSV or Excel file.
   @Get('sets/:resultSetId/download')
   async downloadResultSet(
     @Param('resultSetId') resultSetId: string,

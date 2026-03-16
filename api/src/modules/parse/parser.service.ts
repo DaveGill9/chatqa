@@ -5,6 +5,7 @@ import type { RawRow, TestRow } from 'src/types/row.types';
 
 @Injectable()
 export class ParserService {
+  // Parse an uploaded file into generic rows based on its extension.
   parseRawBuffer(buffer: Buffer, filename: string): RawRow[] {
     const ext = this.getExt(filename);
     if (ext === 'xlsx' || ext === 'xls') {
@@ -13,6 +14,7 @@ export class ParserService {
     return this.parseCsvRaw(buffer);
   }
 
+  // Parse test rows and reject files that are missing required test fields.
   parseTestRowsBuffer(buffer: Buffer, filename: string): TestRow[] {
     const ext = this.getExt(filename);
     const rows =
@@ -28,6 +30,7 @@ export class ParserService {
     return Buffer.from(csv, 'utf-8');
   }
 
+  // Export rows into a single-sheet Excel workbook.
   toXlsxBuffer(rows: RawRow[] | TestRow[], sheetName = 'Sheet1'): Buffer {
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.json_to_sheet(rows);

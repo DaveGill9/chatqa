@@ -46,6 +46,7 @@ export class TestsService {
     private readonly jobsService: JobsService,
   ) {}
 
+  // Create a test set and persist each parsed row as a stored test case.
   async uploadTestSet(file: Express.Multer.File, meta: { name?: string; project?: string }) {
     const rows = this.parserService.parseTestRowsBuffer(file.buffer, file.originalname);
 
@@ -75,6 +76,7 @@ export class TestsService {
     };
   }
 
+  // Queue a background conversion job for spreadsheets that are not yet in test format.
   async convertAndUpload(
     file: Express.Multer.File,
     meta: { name?: string; project?: string; prompt?: string },
@@ -99,6 +101,7 @@ export class TestsService {
     return { jobId };
   }
 
+  // Convert raw rows, store the generated test set, and keep job progress updated.
   private async convertAndUploadBackground(
     jobId: string,
     file: Express.Multer.File,
@@ -169,6 +172,7 @@ export class TestsService {
     }
   }
 
+  // List saved test sets and attach the number of cases in each one.
   async listTestSets(filter?: { keywords?: string; offset?: number; limit?: number }) {
     const keywords = filter?.keywords?.trim();
     const offset = Math.max(0, filter?.offset ?? 0);
@@ -226,6 +230,7 @@ export class TestsService {
     return { name: set.name };
   }
 
+  // Delete a test set and all related result, case, and evaluation records.
   async deleteTestSet(testSetId: string): Promise<void> {
     const set = await this.testSetModel.findById(testSetId).exec();
     if (!set) {
@@ -265,6 +270,7 @@ export class TestsService {
     };
   }
 
+  // Create a result set record and queue the full chatbot evaluation run.
   async runTestSet(testSetId: string) {
     const set = await this.testSetModel.findById(testSetId).lean();
     if (!set) {
@@ -314,6 +320,7 @@ export class TestsService {
     };
   }
 
+  // Run each test case, capture chatbot replies, score them, and finalize the result set.
   private async runTestSetBackground(
     jobId: string,
     resultSetId: string,

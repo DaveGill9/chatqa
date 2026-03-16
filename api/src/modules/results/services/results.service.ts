@@ -16,6 +16,7 @@ export class ResultsService {
     private readonly evaluateService: EvaluateService,
   ) {}
 
+  // List result sets with optional search, format, and pagination filters.
   async listResultSets(filter?: {
     testSetId?: string;
     keywords?: string;
@@ -48,6 +49,7 @@ export class ResultsService {
       .lean();
   }
 
+  // Return a result set along with its stored result cases.
   async getResultSet(resultSetId: string) {
     const set = await this.getResultSetOrThrow(resultSetId);
     const cases = await this.getResultCases(set._id);
@@ -59,11 +61,13 @@ export class ResultsService {
     };
   }
 
+  // Load the saved AI evaluation for a completed result set.
   async getResultSetEvaluation(resultSetId: string) {
     await this.getResultSetOrThrow(resultSetId);
     return this.evaluateService.getEvaluation(resultSetId);
   }
 
+  // Convert stored result cases into exportable test-row format.
   async getResultSetRows(resultSetId: string): Promise<TestRow[]> {
     const set = await this.getResultSetOrThrow(resultSetId);
     const cases = await this.getResultCases(set._id);
@@ -71,6 +75,7 @@ export class ResultsService {
     return cases.map((c) => this.resultCaseToRow(c));
   }
 
+  // Build a downloadable file for result rows in the requested format.
   buildRowsFile(rows: TestRow[], format: 'csv' | 'xlsx'): Buffer {
     if (format === 'xlsx') {
       return this.parserService.toXlsxBuffer(rows, 'Results');

@@ -24,6 +24,7 @@ export class TestsController {
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
+  // Store an uploaded spreadsheet as a reusable test set.
   async uploadTestSet(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { name?: string; project?: string },
@@ -35,6 +36,7 @@ export class TestsController {
 
   @Post('convert')
   @UseInterceptors(FileInterceptor('file'))
+  // Convert raw spreadsheet rows into test cases and queue the import.
   async convertAndUpload(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { name?: string; project?: string; prompt?: string },
@@ -79,6 +81,7 @@ export class TestsController {
     await this.testsService.deleteTestSet(testSetId);
   }
 
+  // Start an asynchronous run for every case in a test set.
   @Post('sets/:testSetId/run')
   async runTestSet(@Param('testSetId') testSetId: string) {
     return this.testsService.runTestSet(testSetId);

@@ -14,6 +14,7 @@ export class ScoreService {
     this.client = new OpenAI({ apiKey });
   }
 
+  // Ask the model to grade an actual response against the expected answer.
   async score(input: string, expected: string, actual: string): Promise<TestScore> {
     const prompt = `
 You are grading a chatbot response.
