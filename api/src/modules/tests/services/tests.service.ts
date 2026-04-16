@@ -96,7 +96,7 @@ export class TestsService {
       current: 0,
     });
 
-    void this.convertAndUploadBackground(jobId, file, meta, rawRows, baseName, filename);
+    void this.convertAndUploadBackground(jobId, meta, rawRows, baseName, filename);
 
     return { jobId };
   }
@@ -104,7 +104,6 @@ export class TestsService {
   // Convert raw rows, store the generated test set, and keep job progress updated.
   private async convertAndUploadBackground(
     jobId: string,
-    file: Express.Multer.File,
     meta: { name?: string; project?: string; prompt?: string },
     rawRows: RawRow[],
     baseName: string,
@@ -236,7 +235,6 @@ export class TestsService {
     if (!set) {
       throw new NotFoundException('Test set not found');
     }
-    const setIdStr = String(set._id);
     const resultSets = await this.resultSetModel
       .find({ testSetId: this.matchStoredId(set._id) })
       .select({ _id: 1 })
@@ -278,7 +276,7 @@ export class TestsService {
     }
 
     const cases = await this.testCaseModel
-      .find({ testSetId: { $in: [String(set._id), set._id as unknown] } })
+      .find({ testSetId: this.matchStoredId(set._id) })
       .sort({ createdAt: 1 })
       .lean();
 
@@ -449,13 +447,7 @@ export class TestsService {
 
       const rowCount = successCount + failedCount;
       const rowsForExport = await this.getResultSetRowsForExport(resultSetId);
-      let resultSizeBytesXlsx: number | undefined;
-      try {
-        const buf = this.buildRowsFile(rowsForExport, 'xlsx');
-        resultSizeBytesXlsx = Buffer.isBuffer(buf) ? buf.length : undefined;
-      } catch {
-        resultSizeBytesXlsx = undefined;
-      }
+      const resultSizeBytesXlsx = await this.getResultSizeBytesXlsx(resultSetId, rowsForExport);
 
       await this.resultSetModel.updateOne(
         { _id: resultSetId },
@@ -483,14 +475,7 @@ export class TestsService {
       });
     } catch (error) {
       const rowCount = successCount + failedCount;
-      let resultSizeBytesXlsx: number | undefined;
-      try {
-        const rowsForExport = await this.getResultSetRowsForExport(resultSetId);
-        const buf = this.buildRowsFile(rowsForExport, 'xlsx');
-        resultSizeBytesXlsx = Buffer.isBuffer(buf) ? buf.length : undefined;
-      } catch {
-        resultSizeBytesXlsx = undefined;
-      }
+      const resultSizeBytesXlsx = await this.getResultSizeBytesXlsx(resultSetId);
 
       await this.resultSetModel.updateOne(
         { _id: resultSetId },
@@ -505,6 +490,19 @@ export class TestsService {
         meta: { successCount, failedCount, current: rowCount, total: cases.length, resultSetId },
       });
       throw error;
+    }
+  }
+
+  private async getResultSizeBytesXlsx(
+    resultSetId: string,
+    rowsForExport?: TestRow[],
+  ): Promise<number | undefined> {
+    try {
+      const rows = rowsForExport ?? (await this.getResultSetRowsForExport(resultSetId));
+      const buf = this.buildRowsFile(rows, 'xlsx');
+      return Buffer.isBuffer(buf) ? buf.length : undefined;
+    } catch {
+      return undefined;
     }
   }
 
