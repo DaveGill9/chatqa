@@ -4,9 +4,9 @@ ChatQA is a full-stack QA harness for testing chatbot behavior at scale.
 
 It lets you upload spreadsheet-based test sets, run them against a chatbot HTTP endpoint, score each response with an LLM, and review the results in a web dashboard. The app is designed for prompt tuning, regression testing, and identifying recurring failure patterns across many conversations.
 
-## What The Project Does
+## What the Project Does
 
-ChatQA is built around a simple workflow:
+ChatQA follows a simple workflow:
 
 1. Upload a CSV or Excel file containing chatbot test cases.
 2. Optionally convert an arbitrary spreadsheet into the canonical test format with AI.
@@ -98,20 +98,20 @@ id,input,expected,project,region
 
 ```text
 chatqa/
-├── api/                     # NestJS API
-│   ├── src/modules/personalities/
-│   ├── src/modules/tests/   # Upload, convert, run test sets
-│   ├── src/modules/results/ # Stored runs and evaluations
-│   ├── src/modules/jobs/    # Background job progress + SSE stream
-│   ├── src/modules/event-logs/ # Structured app event logs
-│   ├── src/modules/users/   # Auth + user records
-│   ├── src/modules/parse/   # Spreadsheet parsing utilities
-│   └── src/modules/health/
-├── spa/                     # React dashboard
-│   ├── src/pages/dashboard/ # Test sets and run controls
-│   ├── src/pages/results/   # Result details and evaluation summary
-│   └── src/pages/logs/      # Event log viewer
-└── README.md
+|-- api/                         # NestJS API
+|   |-- src/modules/personalities/
+|   |-- src/modules/tests/       # Upload, convert, run test sets
+|   |-- src/modules/results/     # Stored runs and evaluations
+|   |-- src/modules/jobs/        # Background job progress + SSE stream
+|   |-- src/modules/event-logs/  # Structured app event logs
+|   |-- src/modules/users/       # Auth + user records
+|   |-- src/modules/parse/       # Spreadsheet parsing utilities
+|   `-- src/modules/health/
+|-- spa/                         # React dashboard
+|   |-- src/pages/dashboard/     # Test sets and run controls
+|   |-- src/pages/results/       # Result details and evaluation summary
+|   `-- src/pages/logs/          # Event log viewer
+`-- README.md
 ```
 
 ## Quick Start
@@ -162,7 +162,9 @@ VITE_MSAL_TENANT_ID=
 MSAL_AUDIENCE=
 ```
 
-### Start The App
+### Start the App
+
+Start the API and SPA in separate terminals.
 
 API:
 
@@ -186,11 +188,13 @@ Default local URLs:
 
 In development, the API enables CORS for `http://localhost:5173` and `http://localhost:5174`.
 
+If you're using `nvm-windows`, make sure the shell you use to start the app can access the active Node installation.
+
 ## Environment Variables
 
 All variables live in the root `.env`.
 
-### Required For Core Workflow
+### Required for Core Workflow
 
 | Variable | Purpose |
 | --- | --- |
@@ -261,13 +265,13 @@ Only needed when running with Microsoft auth enabled:
 - `POST /event-logs`
 - `POST /event-logs/bulk`
 
-### Auth And Users
+### Auth and Users
 
 - `GET /auth/init`
 - `GET /users`
 - `GET /users/:id`
 
-### Jobs And Health
+### Jobs and Health
 
 - `GET /jobs`
 - `GET /jobs/stream`
