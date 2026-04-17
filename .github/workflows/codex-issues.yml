@@ -91,12 +91,23 @@ jobs:
           ${{ github.event.issue.body }}
           EOF
 
+      - name: Validate OpenAI key is configured
+        run: |
+          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
+            echo "::error::Missing OPENAI_API_KEY secret. Add it in Repo Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
+      - name: Prepare Codex home directory
+        run: mkdir -p "${{ runner.temp }}/codex-home"
+
       - name: Run Codex
         id: run_codex
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           codex-version: "0.86.0"
+          codex-home: ${{ runner.temp }}/codex-home
           prompt-file: .github/codex/prompts/implement-issues.md
           codex-args: >-
             --full-auto
