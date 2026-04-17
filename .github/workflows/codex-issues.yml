@@ -115,7 +115,6 @@ jobs:
           prompt-file: /tmp/codex-prompt.md
           codex-args: >-
             --full-auto
-            --sandbox workspace-write
           output-file: codex-output.md
           safety-strategy: drop-sudo
           sandbox: workspace-write
