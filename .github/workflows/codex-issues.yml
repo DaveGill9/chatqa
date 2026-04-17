@@ -65,8 +65,14 @@ jobs:
         id: branch
         run: |
           ISSUE_NUMBER="${{ github.event.issue.number }}"
-          SAFE_TITLE=$(echo "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]+/-/g' | sed 's/^-//' | sed 's/-$//' | cut -c1-40)
+          SAFE_TITLE=$(printf '%s' "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]\+/-/g' | sed 's/^[.-]\+//' | sed 's/[.-]\+$//' | cut -c1-40)
+          if [ -z "$SAFE_TITLE" ]; then
+            SAFE_TITLE="issue"
+          fi
           BRANCH_NAME="codex/issue-${ISSUE_NUMBER}-${SAFE_TITLE}"
+          if ! git check-ref-format --branch "$BRANCH_NAME" >/dev/null 2>&1; then
+            BRANCH_NAME="codex/issue-${ISSUE_NUMBER}"
+          fi
           git checkout -b "$BRANCH_NAME"
           echo "name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
 
