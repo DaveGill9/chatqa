@@ -1,0 +1,179 @@
+name: Codex Issue → PR
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  codex_issue_to_pr:
+    runs-on: ubuntu-latest
+
+    # Only proceed if:
+    # - issue just opened with codex label already present, or
+    # - someone added the codex label
+    if: >
+      (github.event.action == 'opened' && contains(join(github.event.issue.labels.*.name, ','), 'codex'))
+      ||
+      (github.event.action == 'labeled' && github.event.label.name == 'codex')
+
+    steps:
+      - name: Acknowledge issue with comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const issue_number = context.payload.issue.number;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              body: [
+                "Acknowledged. Starting a Codex implementation pass.",
+                "",
+                "I’ll open a draft PR if a safe candidate change can be produced."
+              ].join("\n")
+            });
+
+      - name: Add eyes reaction to issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.reactions.createForIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              content: "eyes"
+            });
+
+      - name: Checkout default branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create working branch
+        id: branch
+        run: |
+          ISSUE_NUMBER="${{ github.event.issue.number }}"
+          SAFE_TITLE=$(echo "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]+/-/g' | sed 's/^-//' | sed 's/-$//' | cut -c1-40)
+          BRANCH_NAME="codex/issue-${ISSUE_NUMBER}-${SAFE_TITLE}"
+          git checkout -b "$BRANCH_NAME"
+          echo "name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Write issue context to file
+        run: |
+          cat > /tmp/issue-context.md <<'EOF'
+          Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
+
+          Author: ${{ github.event.issue.user.login }}
+          URL: ${{ github.event.issue.html_url }}
+
+          Labels:
+          ${{ join(github.event.issue.labels.*.name, ', ') }}
+
+          Body:
+          ${{ github.event.issue.body }}
+          EOF
+
+      - name: Run Codex
+        id: run_codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/codex/prompts/implement-issue.md
+          codex-args: >-
+            --full-auto
+            --sandbox workspace-write
+            --append-prompt-file /tmp/issue-context.md
+          output-file: codex-output.md
+          safety-strategy: drop-sudo
+          sandbox: workspace-write
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment if no changes were produced
+        if: steps.changes.outputs.has_changes == 'false'
+        uses: actions/github-script@v7
+        env:
+          CODEX_FINAL_MESSAGE: ${{ steps.run_codex.outputs.final-message }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: [
+                "Codex reviewed this issue but did not produce a code change.",
+                "",
+                process.env.CODEX_FINAL_MESSAGE || "_No summary returned._"
+              ].join("\n")
+            });
+
+      - name: Commit changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git add -A
+          git commit -m "Codex: implement issue #${{ github.event.issue.number }}"
+
+      - name: Push branch
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git push --set-upstream origin "${{ steps.branch.outputs.name }}"
+
+      - name: Open draft PR
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: actions/github-script@v7
+        env:
+          BRANCH_NAME: ${{ steps.branch.outputs.name }}
+          CODEX_FINAL_MESSAGE: ${{ steps.run_codex.outputs.final-message }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const issue = context.payload.issue;
+            const pr = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Codex: resolve #${issue.number} - ${issue.title}`,
+              head: process.env.BRANCH_NAME,
+              base: context.payload.repository.default_branch,
+              draft: true,
+              body: [
+                `Closes #${issue.number}`,
+                "",
+                "This draft PR was generated automatically from the linked issue.",
+                "",
+                "## Codex summary",
+                process.env.CODEX_FINAL_MESSAGE || "_No summary returned._",
+                "",
+                "## Review checklist",
+                "- [ ] Confirm the implementation matches the issue intent",
+                "- [ ] Review tests",
+                "- [ ] Review edge cases / regressions",
+                "- [ ] Merge manually after approval"
+              ].join("\n")
+            });
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `Draft PR opened: ${pr.data.html_url}`
+            });
