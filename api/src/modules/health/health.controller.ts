@@ -30,6 +30,12 @@ export class HealthController {
     };
   }
 
+  @Get('health')
+  @HttpCode(HttpStatus.OK)
+  getHealthStatus() {
+    return { status: 'ok' };
+  }
+
   /* Common files - prevent 404 errors */
 
   @Get('favicon.ico')
