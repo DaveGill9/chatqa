@@ -101,6 +101,10 @@ jobs:
       - name: Prepare Codex home directory
         run: mkdir -p "${{ runner.temp }}/codex-home"
 
+      - name: Build Codex prompt
+        run: |
+          cat .github/codex/prompts/implement-issues.md /tmp/issue-context.md > /tmp/codex-prompt.md
+
       - name: Run Codex
         id: run_codex
         uses: openai/codex-action@v1
@@ -108,11 +112,10 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           codex-version: "0.86.0"
           codex-home: ${{ runner.temp }}/codex-home
-          prompt-file: .github/codex/prompts/implement-issues.md
+          prompt-file: /tmp/codex-prompt.md
           codex-args: >-
             --full-auto
             --sandbox workspace-write
-            --append-prompt-file /tmp/issue-context.md
           output-file: codex-output.md
           safety-strategy: drop-sudo
           sandbox: workspace-write
