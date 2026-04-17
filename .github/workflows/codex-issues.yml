@@ -90,7 +90,7 @@ jobs:
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          prompt-file: .github/codex/prompts/implement-issue.md
+          prompt-file: .github/codex/prompts/implement-issues.md
           codex-args: >-
             --full-auto
             --sandbox workspace-write
