@@ -90,6 +90,7 @@ jobs:
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          codex-version: "0.86.0"
           prompt-file: .github/codex/prompts/implement-issues.md
           codex-args: >-
             --full-auto
@@ -98,6 +99,24 @@ jobs:
           output-file: codex-output.md
           safety-strategy: drop-sudo
           sandbox: workspace-write
+
+      - name: Comment if Codex run failed
+        if: failure() && steps.run_codex.conclusion == 'failure'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: [
+                "Codex run failed before producing changes.",
+                "",
+                "Check the `Run Codex` logs in Actions for the exact error.",
+                "A common fix is verifying `OPENAI_API_KEY` is present as a repo secret and re-running."
+              ].join("\n")
+            });
 
       - name: Detect changes
         id: changes
